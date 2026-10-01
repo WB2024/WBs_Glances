@@ -247,6 +247,8 @@ BOOKSTACK_TOKEN=                     # id:secret
 BOOKSTACK_HIDE_BOOKS=                # comma-separated book names to leave out of the Tools page
 PAPERLESS_TOKEN=
 FORGEJO_TOKEN=
+GITHUB_USER=                         # your GitHub login (Dev page)
+GITHUB_TOKEN=                        # fine-grained, READ-ONLY personal access token (Metadata, Contents, Issues, Pull requests, Actions)
 
 # ---- per-host Glance agent / lister tokens (stacks/glance-agent and tools/host-stack)
 AGENT_TOKEN_SVC=

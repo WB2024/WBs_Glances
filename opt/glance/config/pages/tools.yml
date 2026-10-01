@@ -51,7 +51,7 @@
             </ul>
 
         - type: split-column
-          max-columns: 3
+          max-columns: 2
           widgets:
             - type: custom-api
               title: Paperless-ngx
@@ -73,28 +73,6 @@
                   <li class="flex justify-between gap-10"><span class="color-subdue">last document added</span><span>{{ if gt (.JSON.Int "paperless.last_added_h") 48 }}{{ div (.JSON.Int "paperless.last_added_h") 24 }}d{{ else }}{{ .JSON.Int "paperless.last_added_h" }}h{{ end }} ago</span></li>
                 </ul>
                 {{ else }}<p class="color-subdue">Paperless is not responding.</p>{{ end }}
-
-
-            - type: custom-api
-              title: Forgejo
-              title-url: http://forgejo.wbhomelab
-              cache: 2m
-              url: http://${HOST_SVC}:3005/api/tools/summary
-              template: |
-
-                {{ if .JSON.Bool "forgejo.up" }}
-                <div class="wb-stats margin-bottom-10">
-                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "forgejo.repos" }}</div><div class="size-h6">REPOSITORIES</div></div>
-                  <div><div class="size-h3 {{ if gt (.JSON.Int "forgejo.open_issues") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "forgejo.open_issues" }}</div><div class="size-h6">OPEN ISSUES</div></div>
-                  <div><div class="size-h3 color-highlight">{{ .JSON.String "forgejo.version" }}</div><div class="size-h6">VERSION</div></div>
-                </div>
-                <div class="size-h6 color-subdue margin-bottom-5">RECENTLY UPDATED</div>
-                <ul class="list list-gap-4 size-h6">
-                {{ range .JSON.Array "forgejo.recent" }}
-                  <li class="flex justify-between gap-10"><span class="text-truncate">{{ .String "name" }}{{ if .Bool "private" }} <span class="color-subdue">private</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "age_h") 48 }}{{ div (.Int "age_h") 24 }}d{{ else }}{{ .Int "age_h" }}h{{ end }} ago</span></li>
-                {{ end }}
-                </ul>
-                {{ else }}<p class="color-subdue">Forgejo is not responding.</p>{{ end }}
 
 
             - type: custom-api

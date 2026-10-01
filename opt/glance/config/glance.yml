@@ -220,6 +220,7 @@ pages:
   - $include: pages/infra.yml
   - $include: pages/networking.yml
   - $include: pages/tools.yml
+  - $include: pages/dev.yml
   - $include: pages/cameras.yml
   - $include: data/news.yml
   - $include: data/video-news.yml

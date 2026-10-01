@@ -1,0 +1,481 @@
+- name: Dev
+  slug: dev
+  width: wide
+  columns:
+    - size: full
+      widgets:
+        - type: custom-api
+          title: GitHub
+          title-url: https://github.com
+          cache: 2m
+          url: http://${HOST_SVC}:3005/api/dev/summary
+          template: |
+
+            {{ if .JSON.Bool "github.ok" }}
+            <div class="flex gap-15 items-center margin-bottom-15" style="flex-wrap:wrap">
+              <img src="{{ .JSON.String "github.profile.avatar" }}&s=96" alt="" style="width:3.4rem;height:3.4rem;border-radius:50%">
+              <div class="grow min-width-0">
+                <div class="size-h3"><a class="color-highlight" href="{{ .JSON.String "github.profile.url" }}" target="_blank">{{ .JSON.String "github.profile.name" }}</a> <span class="color-subdue size-h5">@{{ .JSON.String "github.user" }} &middot; since {{ .JSON.String "github.profile.since" }}</span></div>
+                {{ if ne (.JSON.String "github.profile.bio") "" }}<div class="size-h6 color-subdue">{{ .JSON.String "github.profile.bio" }}</div>{{ end }}
+              </div>
+              <div class="wb-stats">
+                <div><div class="size-h3 color-highlight">{{ .JSON.Int "github.totals.repos" }}</div><div class="size-h6">REPOS</div></div>
+                <div><div class="size-h3 color-highlight">{{ .JSON.Int "github.totals.stars" }}</div><div class="size-h6">STARS</div></div>
+                <div><div class="size-h3 color-highlight">{{ .JSON.Int "github.profile.followers" }}</div><div class="size-h6">FOLLOWERS</div></div>
+                <div><div class="size-h3 {{ if gt (.JSON.Int "github.totals.issues") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "github.totals.issues" }}</div><div class="size-h6">OPEN ISSUES</div></div>
+                {{ if .JSON.Bool "github.has_token" }}<div><div class="size-h3 color-highlight">{{ .JSON.Int "github.heatmap.total" | formatNumber }}</div><div class="size-h6">CONTRIBUTIONS 1Y</div></div>{{ end }}
+              </div>
+            </div>
+            {{ if .JSON.Bool "github.has_token" }}
+            <div class="wb-hm-wrap"><div class="wb-hm">{{ range .JSON.Array "github.heatmap.weeks" }}<div class="wb-hm-col">{{ range .Array "days" }}{{ if lt (.Int "n") 0 }}<i class="wb-hm-d wb-hm-x"></i>{{ else }}<i class="wb-hm-d l{{ .Int "l" }}" title="{{ .String "d" }} &middot; {{ .Int "n" }}"></i>{{ end }}{{ end }}</div>{{ end }}</div></div>
+            {{ else }}<p class="size-h6 color-subdue">Add a read-only <code>GITHUB_TOKEN</code> to glance-admin for the contribution graph, CI status, last commits and private repositories (locked).</p>{{ end }}
+            <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">LANGUAGES</div>
+            <div class="wb-langbar">{{ range .JSON.Array "github.languages" }}<div style="flex:{{ .Int "w" }};background:{{ .String "color" }}" title="{{ .String "lang" }} {{ .Float "pct" }}%"></div>{{ end }}</div>
+            <div class="flex gap-15 size-h6 margin-top-5" style="flex-wrap:wrap">{{ range .JSON.Array "github.languages" }}<span><i class="wb-dot" style="background:{{ .String "color" }}"></i>{{ .String "lang" }} <span class="color-subdue">{{ .Float "pct" }}%</span></span>{{ end }}</div>
+            {{ else }}<p class="color-negative">GitHub: {{ .JSON.String "github.err" }}</p>{{ end }}
+
+
+        - type: split-column
+          max-columns: 2
+          widgets:
+            - type: custom-api
+              title: GitHub activity
+              title-url: https://github.com
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/dev/summary
+              template: |
+                {{ if .JSON.Bool "github.ok" }}
+                <ul class="list list-gap-8 size-h6">
+                {{ range .JSON.Array "github.events" }}
+                  <li class="flex gap-10 items-center">
+                    <span class="wb-ev wb-ev-{{ .String "kind" }}">{{ .String "glyph" }}</span>
+                    <div class="grow min-width-0"><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "repo" }}</a> <span class="color-subdue">{{ .String "text" }}</span></div>
+                    <span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span>
+                  </li>
+                {{ else }}<li class="color-subdue">No recent activity.</li>{{ end }}
+                </ul>
+                {{ else }}<p class="color-negative">GitHub: {{ .JSON.String "github.err" }}</p>{{ end }}
+
+            - type: custom-api
+              title: Pull requests and issues
+              title-url: https://github.com
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/dev/summary
+              template: |
+                {{ if .JSON.Bool "github.ok" }}
+                {{ if gt (len (.JSON.Array "github.work.prs.items")) 0 }}
+                <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">YOUR OPEN PULL REQUESTS &middot; {{ .JSON.Int "github.work.prs.total" }}</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "github.work.prs.items" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ if .Bool "draft" }} <span class="color-subdue">draft</span>{{ end }}{{ range .Array "labels" }} <span class="wb-pill">{{ .String "" }}</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "comments") 0 }}{{ .Int "comments" }} &#9993; &middot; {{ end }}{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+                {{ end }}
+                </ul>
+                {{ end }}
+
+                {{ if gt (len (.JSON.Array "github.work.review.items")) 0 }}
+                <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">REVIEW REQUESTED &middot; {{ .JSON.Int "github.work.review.total" }}</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "github.work.review.items" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ if .Bool "draft" }} <span class="color-subdue">draft</span>{{ end }}{{ range .Array "labels" }} <span class="wb-pill">{{ .String "" }}</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "comments") 0 }}{{ .Int "comments" }} &#9993; &middot; {{ end }}{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+                {{ end }}
+                </ul>
+                {{ end }}
+
+                {{ if gt (len (.JSON.Array "github.work.issues.items")) 0 }}
+                <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">YOUR OPEN ISSUES &middot; {{ .JSON.Int "github.work.issues.total" }}</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "github.work.issues.items" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ if .Bool "draft" }} <span class="color-subdue">draft</span>{{ end }}{{ range .Array "labels" }} <span class="wb-pill">{{ .String "" }}</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "comments") 0 }}{{ .Int "comments" }} &#9993; &middot; {{ end }}{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+                {{ end }}
+                </ul>
+                {{ end }}
+
+                {{ if gt (len (.JSON.Array "github.work.assigned.items")) 0 }}
+                <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">ASSIGNED TO YOU &middot; {{ .JSON.Int "github.work.assigned.total" }}</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "github.work.assigned.items" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ if .Bool "draft" }} <span class="color-subdue">draft</span>{{ end }}{{ range .Array "labels" }} <span class="wb-pill">{{ .String "" }}</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "comments") 0 }}{{ .Int "comments" }} &#9993; &middot; {{ end }}{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+                {{ end }}
+                </ul>
+                {{ end }}
+                {{ if and (eq (len (.JSON.Array "github.work.prs.items")) 0) (eq (len (.JSON.Array "github.work.review.items")) 0) (eq (len (.JSON.Array "github.work.issues.items")) 0) (eq (len (.JSON.Array "github.work.assigned.items")) 0) }}<p class="color-positive">Nothing open: no pull requests or issues waiting.</p>{{ end }}{{ else }}<p class="color-negative">GitHub: {{ .JSON.String "github.err" }}</p>{{ end }}
+
+        - type: custom-api
+          title: GitHub repositories
+          title-url: https://github.com?tab=repositories
+          cache: 2m
+          url: http://${HOST_SVC}:3005/api/dev/summary
+          template: |
+            {{ if .JSON.Bool "github.ok" }}
+            {{ $i := 0 }}
+            <div class="wb-repos">
+            {{ range .JSON.Array "github.repos" }}{{ $i = add $i 1 }}{{ if le $i 12 }}
+                  <div class="wb-repo">
+                    <div class="flex justify-between gap-10 items-center">
+                      <a class="color-highlight text-truncate wb-repo-name" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a>
+                      {{ if .Exists "ci.status" }}{{ if eq (.String "ci.status") "completed" }}{{ if eq (.String "ci.conclusion") "success" }}<span class="color-positive" title="last CI run passed">&#10003;</span>{{ else if eq (.String "ci.conclusion") "failure" }}<span class="color-negative" title="last CI run failed">&#10007;</span>{{ else }}<span class="color-subdue" title="{{ .String "ci.conclusion" }}">&#8226;</span>{{ end }}{{ else }}<span class="color-primary" title="CI running">&#9679;</span>{{ end }}{{ end }}
+                    </div>
+                    <div class="size-h6 color-subdue wb-repo-desc">{{ if ne (.String "desc") "" }}{{ .String "desc" }}{{ else }}&nbsp;{{ end }}</div>
+                    <div class="flex gap-10 size-h6 wb-repo-meta">
+                      {{ if ne (.String "lang") "" }}<span><i class="wb-dot" style="background:{{ .String "color" }}"></i>{{ .String "lang" }}</span>{{ end }}
+                      {{ if gt (.Int "stars") 0 }}<span>&#9733; {{ .Int "stars" }}</span>{{ end }}
+                      {{ if gt (.Int "forks") 0 }}<span>&#8450; {{ .Int "forks" }}</span>{{ end }}
+                      {{ if gt (.Int "issues") 0 }}<span class="color-primary">! {{ .Int "issues" }}</span>{{ end }}
+                      <span class="color-subdue" style="margin-left:auto">{{ if lt (.Int "pushed_min") 1 }}just now{{ else if lt (.Int "pushed_min") 90 }}{{ .Int "pushed_min" }}m{{ else if lt (.Int "pushed_min") 2880 }}{{ div (.Int "pushed_min") 60 }}h{{ else }}{{ div (.Int "pushed_min") 1440 }}d{{ end }}</span>
+                    </div>
+                    {{ if .Exists "commit.msg" }}<div class="size-h6 text-truncate wb-repo-commit" title="{{ .String "commit.msg" }}"><a href="{{ .String "commit.url" }}" target="_blank" class="color-subdue">{{ .String "commit.sha" }}</a> {{ .String "commit.msg" }}</div>{{ end }}
+                  </div>
+            {{ end }}{{ else }}<p class="color-subdue">No repositories.</p>{{ end }}
+            </div>
+            <details class="wb-fold margin-top-10">
+              <summary>All repositories ({{ len (.JSON.Array "github.repos") }})</summary>
+              <ul class="list list-gap-4 size-h6 margin-top-10">
+              {{ range .JSON.Array "github.repos" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><i class="wb-dot" style="background:{{ if ne (.String "lang") "" }}{{ .String "color" }}{{ else }}#444{{ end }}"></i><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a>{{ if .Bool "fork" }} <span class="color-subdue">fork</span>{{ end }}{{ if .Bool "archived" }} <span class="color-subdue">archived</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "stars") 0 }}&#9733; {{ .Int "stars" }} &middot; {{ end }}{{ if lt (.Int "pushed_min") 1 }}just now{{ else if lt (.Int "pushed_min") 90 }}{{ .Int "pushed_min" }}m{{ else if lt (.Int "pushed_min") 2880 }}{{ div (.Int "pushed_min") 60 }}h{{ else }}{{ div (.Int "pushed_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+              </ul>
+            </details>
+            {{ else }}<p class="color-negative">GitHub: {{ .JSON.String "github.err" }}</p>{{ end }}
+
+        - type: custom-api
+          title: CI runs (GitHub Actions)
+          title-url: https://github.com
+          cache: 2m
+          url: http://${HOST_SVC}:3005/api/dev/summary
+          template: |
+
+            {{ if .JSON.Bool "github.has_token" }}
+            <ul class="list list-gap-8 size-h6">
+            {{ range .JSON.Array "github.runs" }}
+              <li class="flex gap-10 items-center">
+                {{ if eq (.String "status") "completed" }}{{ if eq (.String "conclusion") "success" }}<span class="color-positive">&#10003;</span>{{ else if eq (.String "conclusion") "failure" }}<span class="color-negative">&#10007;</span>{{ else }}<span class="color-subdue">&#8226;</span>{{ end }}{{ else }}<span class="color-primary">&#9679;</span>{{ end }}
+                <div class="grow min-width-0"><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "repo" }}</a> <span class="color-subdue">{{ .String "name" }} &middot; {{ .String "branch" }} &middot; {{ .String "title" }}</span></div>
+                <span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span>
+              </li>
+            {{ else }}<li class="color-subdue">No workflow runs yet.</li>{{ end }}
+            </ul>
+            {{ else }}<p class="size-h6 color-subdue">Needs <code>GITHUB_TOKEN</code> (Actions: read).</p>{{ end }}
+
+
+        - type: custom-api
+          title: Forgejo
+          title-url: http://forgejo.wbhomelab
+          cache: 2m
+          url: http://${HOST_SVC}:3005/api/dev/summary
+          template: |
+
+            {{ if .JSON.Bool "forgejo.ok" }}
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "forgejo.totals.repos" }}</div><div class="size-h6">REPOSITORIES</div></div>
+              <div><div class="size-h3 {{ if gt (.JSON.Int "forgejo.totals.issues") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "forgejo.totals.issues" }}</div><div class="size-h6">OPEN ISSUES</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "forgejo.totals.size_mb" }}<span class="size-h6"> MB</span></div><div class="size-h6">ON DISK</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.String "forgejo.version" }}</div><div class="size-h6">VERSION</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "forgejo.heatmap.total" }}</div><div class="size-h6">CONTRIBUTIONS 1Y</div></div>
+            </div>
+
+            <div class="wb-hm-wrap"><div class="wb-hm">{{ range .JSON.Array "forgejo.heatmap.weeks" }}<div class="wb-hm-col">{{ range .Array "days" }}{{ if lt (.Int "n") 0 }}<i class="wb-hm-d wb-hm-x"></i>{{ else }}<i class="wb-hm-d l{{ .Int "l" }}" title="{{ .String "d" }} &middot; {{ .Int "n" }}"></i>{{ end }}{{ end }}</div>{{ end }}</div></div>
+
+            <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">RECENTLY UPDATED</div>
+
+            {{ $i := 0 }}
+            <div class="wb-repos">
+            {{ range .JSON.Array "forgejo.repos" }}{{ $i = add $i 1 }}{{ if le $i 6 }}
+                  <div class="wb-repo">
+                    <div class="flex justify-between gap-10 items-center">
+                      <a class="color-highlight text-truncate wb-repo-name" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a>
+                      {{ if .Exists "ci.status" }}{{ if eq (.String "ci.status") "completed" }}{{ if eq (.String "ci.conclusion") "success" }}<span class="color-positive" title="last CI run passed">&#10003;</span>{{ else if eq (.String "ci.conclusion") "failure" }}<span class="color-negative" title="last CI run failed">&#10007;</span>{{ else }}<span class="color-subdue" title="{{ .String "ci.conclusion" }}">&#8226;</span>{{ end }}{{ else }}<span class="color-primary" title="CI running">&#9679;</span>{{ end }}{{ end }}
+                    </div>
+                    <div class="size-h6 color-subdue wb-repo-desc">{{ if ne (.String "desc") "" }}{{ .String "desc" }}{{ else }}&nbsp;{{ end }}</div>
+                    <div class="flex gap-10 size-h6 wb-repo-meta">
+                      {{ if ne (.String "lang") "" }}<span><i class="wb-dot" style="background:{{ .String "color" }}"></i>{{ .String "lang" }}</span>{{ end }}
+                      {{ if gt (.Int "stars") 0 }}<span>&#9733; {{ .Int "stars" }}</span>{{ end }}
+                      {{ if gt (.Int "forks") 0 }}<span>&#8450; {{ .Int "forks" }}</span>{{ end }}
+                      {{ if gt (.Int "issues") 0 }}<span class="color-primary">! {{ .Int "issues" }}</span>{{ end }}
+                      <span class="color-subdue" style="margin-left:auto">{{ if lt (.Int "pushed_min") 1 }}just now{{ else if lt (.Int "pushed_min") 90 }}{{ .Int "pushed_min" }}m{{ else if lt (.Int "pushed_min") 2880 }}{{ div (.Int "pushed_min") 60 }}h{{ else }}{{ div (.Int "pushed_min") 1440 }}d{{ end }}</span>
+                    </div>
+                    {{ if .Exists "commit.msg" }}<div class="size-h6 text-truncate wb-repo-commit" title="{{ .String "commit.msg" }}"><a href="{{ .String "commit.url" }}" target="_blank" class="color-subdue">{{ .String "commit.sha" }}</a> {{ .String "commit.msg" }}</div>{{ end }}
+                  </div>
+            {{ end }}{{ else }}<p class="color-subdue">No repositories.</p>{{ end }}
+            </div>
+            <details class="wb-fold margin-top-10">
+              <summary>All repositories ({{ len (.JSON.Array "forgejo.repos") }})</summary>
+              <ul class="list list-gap-4 size-h6 margin-top-10">
+              {{ range .JSON.Array "forgejo.repos" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><i class="wb-dot" style="background:{{ if ne (.String "lang") "" }}{{ .String "color" }}{{ else }}#444{{ end }}"></i><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a>{{ if .Bool "fork" }} <span class="color-subdue">fork</span>{{ end }}{{ if .Bool "archived" }} <span class="color-subdue">archived</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "stars") 0 }}&#9733; {{ .Int "stars" }} &middot; {{ end }}{{ if lt (.Int "pushed_min") 1 }}just now{{ else if lt (.Int "pushed_min") 90 }}{{ .Int "pushed_min" }}m{{ else if lt (.Int "pushed_min") 2880 }}{{ div (.Int "pushed_min") 60 }}h{{ else }}{{ div (.Int "pushed_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+              </ul>
+            </details>
+
+            <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">ACTIVITY</div>
+
+            <ul class="list list-gap-8 size-h6">
+            {{ range .JSON.Array "forgejo.events" }}
+              <li class="flex gap-10 items-center">
+                <span class="wb-ev wb-ev-{{ .String "kind" }}">{{ .String "glyph" }}</span>
+                <div class="grow min-width-0"><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "repo" }}</a> <span class="color-subdue">{{ .String "text" }}</span></div>
+                <span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span>
+              </li>
+            {{ else }}<li class="color-subdue">No recent activity.</li>{{ end }}
+            </ul>
+
+
+            {{ if gt (len (.JSON.Array "forgejo.work.prs.items")) 0 }}
+            <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">OPEN PULL REQUESTS &middot; {{ .JSON.Int "forgejo.work.prs.total" }}</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "forgejo.work.prs.items" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a></span><span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ end }}
+
+            {{ if gt (len (.JSON.Array "forgejo.work.issues.items")) 0 }}
+            <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">OPEN ISSUES &middot; {{ .JSON.Int "forgejo.work.issues.total" }}</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "forgejo.work.issues.items" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a></span><span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ end }}
+
+            {{ else }}<p class="color-negative">Forgejo is not responding: {{ .JSON.String "forgejo.err" }}</p>{{ end }}
+
+
+        - type: custom-api
+          title: Private repositories
+          title-url: http://forgejo.wbhomelab
+          css-class: wb-restricted
+          cache: 2m
+          url: http://${HOST_SVC}:3005/api/dev/summary
+          template: |
+
+            {{ if .JSON.Bool "github.ok" }}
+            <div class="size-h6 color-subdue margin-bottom-5">GITHUB &middot; PRIVATE REPOSITORIES &middot; {{ .JSON.Int "github.totals.private" }}</div>
+            {{ if .JSON.Bool "github.has_token" }}
+
+            {{ $i := 0 }}
+            <div class="wb-repos">
+            {{ range .JSON.Array "github.private.repos" }}{{ $i = add $i 1 }}{{ if le $i 8 }}
+                  <div class="wb-repo">
+                    <div class="flex justify-between gap-10 items-center">
+                      <a class="color-highlight text-truncate wb-repo-name" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a>
+                      {{ if .Exists "ci.status" }}{{ if eq (.String "ci.status") "completed" }}{{ if eq (.String "ci.conclusion") "success" }}<span class="color-positive" title="last CI run passed">&#10003;</span>{{ else if eq (.String "ci.conclusion") "failure" }}<span class="color-negative" title="last CI run failed">&#10007;</span>{{ else }}<span class="color-subdue" title="{{ .String "ci.conclusion" }}">&#8226;</span>{{ end }}{{ else }}<span class="color-primary" title="CI running">&#9679;</span>{{ end }}{{ end }}
+                    </div>
+                    <div class="size-h6 color-subdue wb-repo-desc">{{ if ne (.String "desc") "" }}{{ .String "desc" }}{{ else }}&nbsp;{{ end }}</div>
+                    <div class="flex gap-10 size-h6 wb-repo-meta">
+                      {{ if ne (.String "lang") "" }}<span><i class="wb-dot" style="background:{{ .String "color" }}"></i>{{ .String "lang" }}</span>{{ end }}
+                      {{ if gt (.Int "stars") 0 }}<span>&#9733; {{ .Int "stars" }}</span>{{ end }}
+                      {{ if gt (.Int "forks") 0 }}<span>&#8450; {{ .Int "forks" }}</span>{{ end }}
+                      {{ if gt (.Int "issues") 0 }}<span class="color-primary">! {{ .Int "issues" }}</span>{{ end }}
+                      <span class="color-subdue" style="margin-left:auto">{{ if lt (.Int "pushed_min") 1 }}just now{{ else if lt (.Int "pushed_min") 90 }}{{ .Int "pushed_min" }}m{{ else if lt (.Int "pushed_min") 2880 }}{{ div (.Int "pushed_min") 60 }}h{{ else }}{{ div (.Int "pushed_min") 1440 }}d{{ end }}</span>
+                    </div>
+                    {{ if .Exists "commit.msg" }}<div class="size-h6 text-truncate wb-repo-commit" title="{{ .String "commit.msg" }}"><a href="{{ .String "commit.url" }}" target="_blank" class="color-subdue">{{ .String "commit.sha" }}</a> {{ .String "commit.msg" }}</div>{{ end }}
+                  </div>
+            {{ end }}{{ else }}<p class="color-subdue">No repositories.</p>{{ end }}
+            </div>
+            <details class="wb-fold margin-top-10">
+              <summary>All private repositories ({{ len (.JSON.Array "github.private.repos") }})</summary>
+              <ul class="list list-gap-4 size-h6 margin-top-10">
+              {{ range .JSON.Array "github.private.repos" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><i class="wb-dot" style="background:{{ if ne (.String "lang") "" }}{{ .String "color" }}{{ else }}#444{{ end }}"></i><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a>{{ if .Bool "fork" }} <span class="color-subdue">fork</span>{{ end }}{{ if .Bool "archived" }} <span class="color-subdue">archived</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "stars") 0 }}&#9733; {{ .Int "stars" }} &middot; {{ end }}{{ if lt (.Int "pushed_min") 1 }}just now{{ else if lt (.Int "pushed_min") 90 }}{{ .Int "pushed_min" }}m{{ else if lt (.Int "pushed_min") 2880 }}{{ div (.Int "pushed_min") 60 }}h{{ else }}{{ div (.Int "pushed_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+              </ul>
+            </details>
+
+            <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">PRIVATE ACTIVITY</div>
+
+            <ul class="list list-gap-8 size-h6">
+            {{ range .JSON.Array "github.private.events" }}
+              <li class="flex gap-10 items-center">
+                <span class="wb-ev wb-ev-{{ .String "kind" }}">{{ .String "glyph" }}</span>
+                <div class="grow min-width-0"><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "repo" }}</a> <span class="color-subdue">{{ .String "text" }}</span></div>
+                <span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span>
+              </li>
+            {{ else }}<li class="color-subdue">No recent activity.</li>{{ end }}
+            </ul>
+
+            <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">PRIVATE CI RUNS</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "github.private.runs" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate">{{ if eq (.String "conclusion") "success" }}<span class="color-positive">&#10003;</span>{{ else if eq (.String "conclusion") "failure" }}<span class="color-negative">&#10007;</span>{{ else }}<span class="color-primary">&#9679;</span>{{ end }} {{ .String "repo" }} <span class="color-subdue">{{ .String "name" }} &middot; {{ .String "branch" }}</span></span><span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ else }}<li class="color-subdue">No runs.</li>{{ end }}
+            </ul>
+
+            {{ if gt (len (.JSON.Array "github.private.work.prs.items")) 0 }}
+            <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">YOUR OPEN PULL REQUESTS &middot; {{ .JSON.Int "github.private.work.prs.total" }}</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "github.private.work.prs.items" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ if .Bool "draft" }} <span class="color-subdue">draft</span>{{ end }}{{ range .Array "labels" }} <span class="wb-pill">{{ .String "" }}</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "comments") 0 }}{{ .Int "comments" }} &#9993; &middot; {{ end }}{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ end }}
+
+            {{ if gt (len (.JSON.Array "github.private.work.review.items")) 0 }}
+            <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">REVIEW REQUESTED &middot; {{ .JSON.Int "github.private.work.review.total" }}</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "github.private.work.review.items" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ if .Bool "draft" }} <span class="color-subdue">draft</span>{{ end }}{{ range .Array "labels" }} <span class="wb-pill">{{ .String "" }}</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "comments") 0 }}{{ .Int "comments" }} &#9993; &middot; {{ end }}{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ end }}
+
+            {{ if gt (len (.JSON.Array "github.private.work.issues.items")) 0 }}
+            <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">YOUR OPEN ISSUES &middot; {{ .JSON.Int "github.private.work.issues.total" }}</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "github.private.work.issues.items" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ if .Bool "draft" }} <span class="color-subdue">draft</span>{{ end }}{{ range .Array "labels" }} <span class="wb-pill">{{ .String "" }}</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "comments") 0 }}{{ .Int "comments" }} &#9993; &middot; {{ end }}{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ end }}
+
+            {{ if gt (len (.JSON.Array "github.private.work.assigned.items")) 0 }}
+            <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">ASSIGNED TO YOU &middot; {{ .JSON.Int "github.private.work.assigned.total" }}</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "github.private.work.assigned.items" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ if .Bool "draft" }} <span class="color-subdue">draft</span>{{ end }}{{ range .Array "labels" }} <span class="wb-pill">{{ .String "" }}</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "comments") 0 }}{{ .Int "comments" }} &#9993; &middot; {{ end }}{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ end }}
+
+            {{ else }}<p class="size-h6 color-subdue">Needs <code>GITHUB_TOKEN</code> to see private repositories.</p>{{ end }}
+            {{ end }}
+            {{ if .JSON.Bool "forgejo.ok" }}
+            <div class="size-h6 color-subdue margin-top-20 margin-bottom-5">FORGEJO &middot; PRIVATE REPOSITORIES &middot; {{ .JSON.Int "forgejo.totals.private" }}</div>
+
+            {{ $i := 0 }}
+            <div class="wb-repos">
+            {{ range .JSON.Array "forgejo.private.repos" }}{{ $i = add $i 1 }}{{ if le $i 8 }}
+                  <div class="wb-repo">
+                    <div class="flex justify-between gap-10 items-center">
+                      <a class="color-highlight text-truncate wb-repo-name" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a>
+                      {{ if .Exists "ci.status" }}{{ if eq (.String "ci.status") "completed" }}{{ if eq (.String "ci.conclusion") "success" }}<span class="color-positive" title="last CI run passed">&#10003;</span>{{ else if eq (.String "ci.conclusion") "failure" }}<span class="color-negative" title="last CI run failed">&#10007;</span>{{ else }}<span class="color-subdue" title="{{ .String "ci.conclusion" }}">&#8226;</span>{{ end }}{{ else }}<span class="color-primary" title="CI running">&#9679;</span>{{ end }}{{ end }}
+                    </div>
+                    <div class="size-h6 color-subdue wb-repo-desc">{{ if ne (.String "desc") "" }}{{ .String "desc" }}{{ else }}&nbsp;{{ end }}</div>
+                    <div class="flex gap-10 size-h6 wb-repo-meta">
+                      {{ if ne (.String "lang") "" }}<span><i class="wb-dot" style="background:{{ .String "color" }}"></i>{{ .String "lang" }}</span>{{ end }}
+                      {{ if gt (.Int "stars") 0 }}<span>&#9733; {{ .Int "stars" }}</span>{{ end }}
+                      {{ if gt (.Int "forks") 0 }}<span>&#8450; {{ .Int "forks" }}</span>{{ end }}
+                      {{ if gt (.Int "issues") 0 }}<span class="color-primary">! {{ .Int "issues" }}</span>{{ end }}
+                      <span class="color-subdue" style="margin-left:auto">{{ if lt (.Int "pushed_min") 1 }}just now{{ else if lt (.Int "pushed_min") 90 }}{{ .Int "pushed_min" }}m{{ else if lt (.Int "pushed_min") 2880 }}{{ div (.Int "pushed_min") 60 }}h{{ else }}{{ div (.Int "pushed_min") 1440 }}d{{ end }}</span>
+                    </div>
+                    {{ if .Exists "commit.msg" }}<div class="size-h6 text-truncate wb-repo-commit" title="{{ .String "commit.msg" }}"><a href="{{ .String "commit.url" }}" target="_blank" class="color-subdue">{{ .String "commit.sha" }}</a> {{ .String "commit.msg" }}</div>{{ end }}
+                  </div>
+            {{ end }}{{ else }}<p class="color-subdue">No repositories.</p>{{ end }}
+            </div>
+            <details class="wb-fold margin-top-10">
+              <summary>All private repositories ({{ len (.JSON.Array "forgejo.private.repos") }})</summary>
+              <ul class="list list-gap-4 size-h6 margin-top-10">
+              {{ range .JSON.Array "forgejo.private.repos" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><i class="wb-dot" style="background:{{ if ne (.String "lang") "" }}{{ .String "color" }}{{ else }}#444{{ end }}"></i><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a>{{ if .Bool "fork" }} <span class="color-subdue">fork</span>{{ end }}{{ if .Bool "archived" }} <span class="color-subdue">archived</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "stars") 0 }}&#9733; {{ .Int "stars" }} &middot; {{ end }}{{ if lt (.Int "pushed_min") 1 }}just now{{ else if lt (.Int "pushed_min") 90 }}{{ .Int "pushed_min" }}m{{ else if lt (.Int "pushed_min") 2880 }}{{ div (.Int "pushed_min") 60 }}h{{ else }}{{ div (.Int "pushed_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+              </ul>
+            </details>
+
+            <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">PRIVATE ACTIVITY</div>
+
+            <ul class="list list-gap-8 size-h6">
+            {{ range .JSON.Array "forgejo.private.events" }}
+              <li class="flex gap-10 items-center">
+                <span class="wb-ev wb-ev-{{ .String "kind" }}">{{ .String "glyph" }}</span>
+                <div class="grow min-width-0"><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "repo" }}</a> <span class="color-subdue">{{ .String "text" }}</span></div>
+                <span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span>
+              </li>
+            {{ else }}<li class="color-subdue">No recent activity.</li>{{ end }}
+            </ul>
+
+
+            {{ if gt (len (.JSON.Array "forgejo.private.work.prs.items")) 0 }}
+            <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">OPEN PULL REQUESTS &middot; {{ .JSON.Int "forgejo.private.work.prs.total" }}</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "forgejo.private.work.prs.items" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a></span><span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ end }}
+
+            {{ if gt (len (.JSON.Array "forgejo.private.work.issues.items")) 0 }}
+            <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">OPEN ISSUES &middot; {{ .JSON.Int "forgejo.private.work.issues.total" }}</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range .JSON.Array "forgejo.private.work.issues.items" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">{{ .String "repo" }}#{{ .Int "number" }}</span> <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a></span><span class="color-subdue shrink-0">{{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h{{ else }}{{ div (.Int "age_min") 1440 }}d{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ end }}
+
+            {{ end }}
+
+
+    - size: small
+      widgets:
+        - type: html
+          title: Dev search
+          source: |
+            <div class="widget-header"><h2 class="uppercase">Dev search</h2></div>
+            <div data-wb="search" data-wb-noindex data-engines='[["GitHub code","https://github.com/search?q={QUERY}&type=code","si:github"],["GitHub repos","https://github.com/search?q={QUERY}&type=repositories","si:github"],["MDN","https://developer.mozilla.org/en-US/search?q={QUERY}","si:mdnwebdocs"],["Stack Overflow","https://stackoverflow.com/search?q={QUERY}","si:stackoverflow"],["Docker Hub","https://hub.docker.com/search?q={QUERY}","si:docker"],["PyPI","https://pypi.org/search/?q={QUERY}","si:pypi"],["npm","https://www.npmjs.com/search?q={QUERY}","si:npm"],["crates.io","https://crates.io/search?q={QUERY}","si:rust"],["Hugging Face","https://huggingface.co/models?search={QUERY}","si:huggingface"],["DevDocs","https://devdocs.io/#q={QUERY}","mdi:book-open-variant"]]'></div>
+
+        - type: custom-api
+          title: Dev tools
+          title-url: http://${HOST_SVC}:8100
+          cache: 1m
+          url: http://${HOST_SVC}:3005/api/tools/summary
+          template: |
+
+            {{ range .JSON.Array "dev_tiles" }}
+              <div class="wb-tile{{ if not (.Bool "up") }} wb-tile-bad{{ end }} margin-bottom-5">
+                <span class="{{ if not (.Bool "up") }}color-negative{{ else }}color-positive{{ end }}">&#9679;</span>
+                <div class="wb-tile-main">
+                  <div class="text-truncate"><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a></div>
+                  <div class="size-h6 color-subdue text-truncate">{{ .String "detail" }}</div>
+                </div>
+              </div>
+            {{ end }}
+            <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">CYBERCHEF RECIPES</div>
+            <div class="wb-pillrow">
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8100/#recipe=From_Base64('A-Za-z0-9%2B/%3D',true,false)">Base64 decode</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8100/#recipe=To_Base64('A-Za-z0-9%2B/%3D')">Base64 encode</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8100/#recipe=JSON_Beautify('%20%20%20%20',false,true)">JSON beautify</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8100/#recipe=JWT_Decode()">JWT decode</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8100/#recipe=Magic(3,false,false,'')">Magic</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8100/#recipe=URL_Decode()">URL decode</a>
+            </div>
+            <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">IT TOOLS</div>
+            <div class="wb-pillrow">
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8430/uuid-generator">UUID</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8430/token-generator">Token</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8430/hash-text">Hash</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8430/jwt-parser">JWT</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8430/crontab-generator">Cron</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8430/regex-tester">Regex</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8430/json-prettify">JSON</a>
+              <a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8430/url-parser">URL</a>
+            </div>
+
+
+        - type: custom-api
+          title: GitHub API
+          title-url: https://docs.github.com/rest
+          cache: 2m
+          url: http://${HOST_SVC}:3005/api/dev/summary
+          template: |
+
+            {{ if .JSON.Bool "github.ok" }}
+            <ul class="list list-gap-4 size-h6">
+              <li class="flex justify-between gap-10"><span class="color-subdue">GitHub token</span><span class="{{ if .JSON.Bool "github.has_token" }}color-positive{{ else }}color-primary{{ end }}">{{ if .JSON.Bool "github.has_token" }}token set{{ else }}none (public data only){{ end }}</span></li>
+              <li class="flex justify-between gap-10"><span class="color-subdue">API budget</span><span class="{{ if lt (.JSON.Int "github.rate.remaining") 100 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "github.rate.remaining" }} / {{ .JSON.Int "github.rate.limit" }} left</span></li>
+              <li class="flex justify-between gap-10"><span class="color-subdue">repositories</span><span>{{ .JSON.Int "github.totals.public" }} public{{ if .JSON.Bool "github.has_token" }} &middot; {{ .JSON.Int "github.totals.private" }} private{{ end }}</span></li>
+              <li class="flex justify-between gap-10"><span class="color-subdue">forks received</span><span>{{ .JSON.Int "github.totals.forks" }}</span></li>
+            </ul>
+            {{ else }}<p class="color-negative size-h6">GitHub: {{ .JSON.String "github.err" }}</p>{{ end }}
+
+
+        - type: bookmarks
+          title: Quick links
+          groups:
+            - links:
+                - { title: "GitHub pull requests",  url: "https://github.com/pulls",          icon: si:github }
+                - { title: "GitHub issues",         url: "https://github.com/issues",         icon: si:github }
+                - { title: "GitHub notifications",  url: "https://github.com/notifications",  icon: si:github }
+                - { title: "GitHub new repository", url: "https://github.com/new",            icon: si:github }
+                - { title: "Forgejo",               url: "http://forgejo.wbhomelab",          icon: di:forgejo }
+                - { title: "Docker Hub",            url: "https://hub.docker.com",            icon: si:docker }
+                - { title: "Dozzle (container logs)", url: "http://${HOST_SVC}:9999",         icon: mdi:text-search }
+                - { title: "Dockge · services",     url: "http://${HOST_SVC}:5001",           icon: di:dockge }

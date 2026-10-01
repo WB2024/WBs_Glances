@@ -1,6 +1,6 @@
 # WB's Glances
 
-A self-hosted homelab dashboard built on [Glance](https://github.com/glanceapp/glance): eleven tabs, a small companion service that
+A self-hosted homelab dashboard built on [Glance](https://github.com/glanceapp/glance): twelve tabs, a small companion service that
 adds the things Glance does not do (editable bookmarks, notes, a to-do list, add/remove video channels and news feeds, cross-tab search,
 cached summaries), PIN-locked "private" widgets, and read-only host agents. Everything is plain YAML, a few Python scripts and
 three small front-end files, and **this repo is both the showcase and the backup**: clone it, fill in a `.env`, run one script.
@@ -16,7 +16,7 @@ three small front-end files, and **this repo is both the showcase and the backup
 
 | | |
 |---|---|
-| **11 tabs** | Home, Downloads, Audio, Video, Infra, Networking, Tools, Cameras, News Feeds, Video News Feed, Bookmarks |
+| **12 tabs** | Home, Downloads, Audio, Video, Infra, Networking, Tools, Dev, Cameras, News Feeds, Video News Feed, Bookmarks |
 | **Find** | one search box that finds anything on *any* tab, jumps to it and highlights the match (`/` focuses it) |
 | **Per-engine search bars** | SearXNG, Startpage, YouTube, Reddit, MusicBrainz, GitHub, and more: one click each |
 | **Notes and to-do** | saved on the server, so they follow you between devices |
@@ -70,6 +70,15 @@ Rich cards for the self-hosted tools (Paperless-ngx, Forgejo, BookStack, RustyDi
 a "latest releases" column built from GitHub's public Atom feeds (no API token, no rate limit).
 
 ![Tools](images/09-tools.jpg)
+
+### Dev
+GitHub and the local Forgejo in one place: profile and stats, a **contribution graph**, a language mix, activity (repeated automated pushes are folded into one row),
+repository cards with the last commit and CI result, open pull requests and issues, CI runs, and the **dev tools** (CyberChef, IT Tools, Excalidraw, Dozzle, Termix)
+with one-click recipes. Dev search covers GitHub code/repos, MDN, Stack Overflow, Docker Hub, PyPI, npm, crates.io and more. **Private repositories and the activity in them
+appear only inside a PIN-locked widget** (and are never written to disk by glance-admin). Needs `GITHUB_TOKEN` for the graph, CI, last commits and private repos; without it
+you get public data only.
+
+![Dev](images/14-dev.jpg)
 
 ### Cameras
 Live view from Frigate (a still image, upgraded to a stream only while the tile is on screen and the tab is visible), recent detections, **one row per object type**
@@ -169,6 +178,7 @@ What to put in `.env` (see `opt/glance/.env.example` for every name):
 | Service keys | one key per service the pages use (Jellyfin, Navidrome, SABnzbd, Radarr, Sonarr, Lidarr, Prowlarr, Seerr, slskd, Pi-hole, Audiobookshelf, Immich, the two private apps) |
 | Infra | `PROXMOX_USER` / `PROXMOX_PASSWORD` (an API **token** with the `PVEAuditor` role), `PBS_PASSWORD`, `TAILSCALE_OAUTH_ID/SECRET` (read-only), `NPM_USER` / `NPM_PASS` (a view-only user) |
 | Tools | `BOOKSTACK_TOKEN`, `PAPERLESS_TOKEN`, `FORGEJO_TOKEN` |
+| Dev | `GITHUB_USER`, `GITHUB_TOKEN`: create a **fine-grained** personal access token (GitHub > Settings > Developer settings), repository access *All repositories*, permissions **read-only**: Metadata, Contents, Issues, Pull requests, Actions. Nothing here ever writes to GitHub. |
 | Lock | `GLANCE_PIN` |
 | Agents | `AGENT_TOKEN_SVC`, `AGENT_TOKEN_JELLY`, `AGENT_TOKEN_DEVUAN` (any long random strings; the same value goes on the matching host) |
 

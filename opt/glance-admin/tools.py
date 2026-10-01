@@ -207,11 +207,16 @@ def bookstack():
         return {"up": False, "err": str(exc)[:80]}
 
 
+DEV_KEYS = ("cyberchef", "ittools", "excalidraw", "dozzle", "termix")      # shown on the Dev page instead of the Tools page
+
+
 def build():
     with ThreadPoolExecutor(max_workers=8) as ex:
-        tiles = list(ex.map(_tile, TILES))
-        p, f, bk = ex.submit(paperless), ex.submit(forgejo), ex.submit(bookstack)
-        out = {"at": int(time.time()), "tiles": tiles, "paperless": p.result(), "forgejo": f.result(), "bookstack": bk.result()}
+        all_tiles = list(ex.map(_tile, TILES))
+        p, bk = ex.submit(paperless), ex.submit(bookstack)
+        tiles = [x for x in all_tiles if x["key"] not in DEV_KEYS]
+        dev = sorted([x for x in all_tiles if x["key"] in DEV_KEYS], key=lambda x: DEV_KEYS.index(x["key"]))
+        out = {"at": int(time.time()), "tiles": tiles, "dev_tiles": dev, "paperless": p.result(), "bookstack": bk.result()}
     out["up"] = sum(1 for t in tiles if t["up"])
     out["down"] = sum(1 for t in tiles if not t["up"])
     return out

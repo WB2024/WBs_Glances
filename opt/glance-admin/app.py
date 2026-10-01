@@ -25,7 +25,7 @@ GLANCE_URL = os.environ.get("GLANCE_URL", "http://host.docker.internal:3002").rs
 PAGES = [p.split(":", 1) for p in os.environ.get(
     "PAGES",
     "home:Home,downloads:Downloads,audio:Audio,video:Video,infra:Infra,networking:Networking,"
-    "tools:Tools,cameras:Cameras,news:News Feeds,video-news:Video News Feed,bookmarks:Bookmarks").split(",")]
+    "tools:Tools,dev:Dev,cameras:Cameras,news:News Feeds,video-news:Video News Feed,bookmarks:Bookmarks").split(",")]
 WARM_SECONDS = int(os.environ.get("WARM_SECONDS", "15"))     # 0 turns the page warmer off
 REINDEX_SECONDS = int(os.environ.get("REINDEX_SECONDS", "300"))
 LIDARR_URL = os.environ.get("LIDARR_URL", "http://host.docker.internal:8686").rstrip("/")
@@ -482,6 +482,23 @@ def _cam_loop():
         time.sleep(wait)
 
 
+_devst = {"at": 0, "data": None, "err": ""}
+
+
+def _dev_loop():
+    import dev
+    time.sleep(12)
+    while True:
+        try:
+            _devst.update(data=dev.build(), at=int(time.time()), err="")
+            _persist("dev", {"at": _devst["at"], "data": dev.public_part(_devst["data"])})      # private repos/events never touch the disk
+            wait = int(os.environ.get("DEV_REFRESH_SECONDS", "300" if os.environ.get("GITHUB_TOKEN") else "1800"))
+        except Exception as exc:
+            _devst["err"] = str(exc)[:200]
+            wait = 120
+        time.sleep(wait)
+
+
 _relst = {"at": 0, "data": None, "err": ""}
 
 
@@ -891,6 +908,11 @@ class H(BaseHTTPRequestHandler):
                 return self._send(502, {"error": "Frigate did not answer"})
             return self._send(200, res)
 
+        if path == "/api/dev/summary" and method == "GET":
+            if _devst["data"] is None:
+                return self._send(503, {"error": "not cached yet", "detail": _devst["err"]})
+            return self._send(200, _devst["data"])
+
         if path == "/api/cameras/summary" and method == "GET":
             if _camst["data"] is None:
                 return self._send(503, {"error": "not cached yet", "detail": _camst["err"]})
@@ -997,7 +1019,7 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.makedirs(STATE_DIR, exist_ok=True)
-    for _name, _state in (("tailscale", _tailscale), ("npm", _npmst), ("infra", _infra), ("lidarr", _lcal), ("tools", _toolsst), ("releases", _relst), ("cameras", _camst)):
+    for _name, _state in (("tailscale", _tailscale), ("npm", _npmst), ("infra", _infra), ("lidarr", _lcal), ("tools", _toolsst), ("releases", _relst), ("cameras", _camst), ("dev", _devst)):
         _c = _restore(_name)
         if _c and _c.get("data") is not None:
             _state.update(data=_c["data"], at=_c.get("at", 0))
@@ -1024,6 +1046,7 @@ if __name__ == "__main__":
     threading.Thread(target=_tools_loop, daemon=True).start()
     threading.Thread(target=_rel_loop, daemon=True).start()
     threading.Thread(target=_cam_loop, daemon=True).start()
+    threading.Thread(target=_dev_loop, daemon=True).start()
     if os.environ.get("TAILSCALE_OAUTH_SECRET"):
         threading.Thread(target=_net_loop, args=("tailscale", _tailscale, 120), daemon=True).start()
     if os.environ.get("NPM_PASS"):

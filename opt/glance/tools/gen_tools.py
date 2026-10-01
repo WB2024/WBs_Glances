@@ -120,9 +120,8 @@ rel_card = ("        - type: custom-api\n          title: Latest releases\n     
 
 page = "- name: Tools\n  slug: tools\n  width: wide\n  columns:\n    - size: full\n      widgets:\n"
 page += rustydisc + "\n"
-page += "        - type: split-column\n          max-columns: 3\n          widgets:\n"
+page += "        - type: split-column\n          max-columns: 2\n          widgets:\n"
 page += block(card("Paperless-ngx", "http://paperless.wbhomelab", paperless), 12) + "\n"
-page += block(card("Forgejo", "http://forgejo.wbhomelab", forgejo), 12) + "\n"
 page += block(card("BookStack", "http://bookstack.wbhomelab", bookstack), 12) + "\n"
 page += card("Other tools", "http://${HOST_SVC}:5001", tiles) + "\n"
 page += "    - size: small\n      widgets:\n" + rel_card
