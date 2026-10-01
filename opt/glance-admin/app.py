@@ -26,6 +26,7 @@ PAGES = [p.split(":", 1) for p in os.environ.get(
     "PAGES",
     "home:Home,downloads:Downloads,audio:Audio,video:Video,infra:Infra,networking:Networking,"
     "tools:Tools,cameras:Cameras,news:News Feeds,video-news:Video News Feed,bookmarks:Bookmarks").split(",")]
+WARM_SECONDS = int(os.environ.get("WARM_SECONDS", "15"))     # 0 turns the page warmer off
 REINDEX_SECONDS = int(os.environ.get("REINDEX_SECONDS", "300"))
 LIDARR_URL = os.environ.get("LIDARR_URL", "http://host.docker.internal:8686").rstrip("/")
 LIDARR_KEY = os.environ.get("LIDARR_KEY", "")
@@ -595,6 +596,20 @@ def _private_loop(fn, state):
         time.sleep(wait)
 
 
+def _warm_loop():
+    """Keeps Glance's widget caches fresh. Glance refetches an expired widget while the page request waits (1-4 s); requesting every
+    page now and then makes that happen here, in the background, so a real visit is answered from cache."""
+    time.sleep(20)
+    while True:
+        for slug, _ in PAGES:
+            try:
+                with urllib.request.urlopen("%s/api/pages/%s/content/" % (GLANCE_URL, slug), timeout=60) as r:
+                    r.read()
+            except Exception:
+                pass
+        time.sleep(WARM_SECONDS)
+
+
 def _abs_loop():
     time.sleep(4)
     while True:
@@ -998,6 +1013,8 @@ if __name__ == "__main__":
     except Exception as _exc:
         print("page publish failed:", _exc, flush=True)
     threading.Thread(target=_indexer, daemon=True).start()
+    if WARM_SECONDS > 0:
+        threading.Thread(target=_warm_loop, daemon=True).start()
     if LIDARR_KEY:
         threading.Thread(target=_lidarr_loop, daemon=True).start()
     if ABS_KEY:
