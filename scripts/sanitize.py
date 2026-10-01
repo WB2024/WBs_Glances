@@ -279,6 +279,8 @@ def scan(out, secret_values):
                 if v in text:
                     problems.append("%s: contains the value of %s from a real .env file" % (rel, key))
             for m in EMAIL_RE.findall(text):
+                if re.match(r"^[A-Z]@", m):
+                    continue                        # template placeholder such as @P@.heatmap
                 if not ALLOWED_EMAIL.search("@" + m.split("@", 1)[1]) and not m.endswith(("api@pam", "@pam")):
                     problems.append("%s: e-mail address %s" % (rel, m))
             if TOKEN_RE.search(text):
