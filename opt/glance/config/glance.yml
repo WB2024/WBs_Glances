@@ -1,0 +1,226 @@
+server:
+  port: 8080
+  assets-path: /app/assets
+
+branding:
+  app-name: Homelab
+  logo-text: WB
+  hide-footer: true
+
+theme:
+  # default: near-black zinc with a warm accent (close to the old Homepage look)
+  background-color: 240 8 9
+  primary-color: 43 50 70
+  positive-color: 150 45 55
+  negative-color: 0 70 70
+  contrast-multiplier: 1.05
+  custom-css-file: /assets/glance/custom.css
+  presets:
+    zinc-light:
+      light: true
+      background-color: 240 6 96
+      primary-color: 43 60 40
+      positive-color: 150 45 40
+      negative-color: 0 60 50
+    teal-city:
+      background-color: 225 14 15
+      primary-color: 157 47 65
+      contrast-multiplier: 1.1
+    catppuccin-frappe:
+      background-color: 229 19 23
+      contrast-multiplier: 1.2
+      primary-color: 222 74 74
+      positive-color: 96 44 68
+      negative-color: 359 68 71
+    catppuccin-macchiato:
+      background-color: 232 23 18
+      contrast-multiplier: 1.2
+      primary-color: 220 83 75
+      positive-color: 105 48 72
+      negative-color: 351 74 73
+    catppuccin-mocha:
+      background-color: 240 21 15
+      contrast-multiplier: 1.2
+      primary-color: 217 92 83
+      positive-color: 115 54 76
+      negative-color: 347 70 65
+    camouflage:
+      background-color: 186 21 20
+      contrast-multiplier: 1.2
+      primary-color: 97 13 80
+    gruvbox-dark:
+      background-color: 0 0 16
+      primary-color: 43 59 81
+      positive-color: 61 66 44
+      negative-color: 6 96 59
+    kanagawa-dark:
+      background-color: 240 13 14
+      primary-color: 51 33 68
+      negative-color: 358 100 68
+      contrast-multiplier: 1.2
+    tucan:
+      background-color: 50 1 6
+      primary-color: 24 97 58
+      negative-color: 209 88 54
+    dracula:
+      background-color: 231 15 21
+      primary-color: 265 89 79
+      contrast-multiplier: 1.2
+      positive-color: 135 94 66
+      negative-color: 0 100 67
+    shades-of-purple:
+      background-color: 243 33 25
+      contrast-multiplier: 1.2
+      primary-color: 50 100 49
+      positive-color: 98 82 71
+      negative-color: 12 77 52
+    neon-pink:
+      background-color: 240 27 11
+      contrast-multiplier: 1.5
+      primary-color: 321 100 71
+      positive-color: 165 78 51
+      negative-color: 360 100 71
+    catppuccin-latte:
+      light: true
+      background-color: 220 23 95
+      contrast-multiplier: 1.0
+      primary-color: 220 91 54
+      positive-color: 109 58 40
+      negative-color: 347 87 44
+    peachy:
+      light: true
+      background-color: 28 40 77
+      primary-color: 155 100 20
+      negative-color: 0 100 60
+      contrast-multiplier: 1.1
+      text-saturation-multiplier: 0.5
+    zebra:
+      light: true
+      background-color: 0 0 95
+      primary-color: 0 0 10
+      negative-color: 0 90 50
+
+    spotify:
+      background-color: 0 0 7
+      primary-color: 141 73 42
+      contrast-multiplier: 1.2
+    amazon:
+      background-color: 213 28 19
+      primary-color: 36 100 50
+    facebook:
+      background-color: 210 4 10
+      primary-color: 214 89 52
+      contrast-multiplier: 1.2
+    netflix:
+      background-color: 0 0 8
+      primary-color: 357 92 47
+      negative-color: 357 73 42
+      contrast-multiplier: 1.2
+    youtube:
+      background-color: 0 0 6
+      primary-color: 0 100 50
+      negative-color: 0 100 40
+      contrast-multiplier: 1.2
+    twitch:
+      background-color: 240 7 6
+      primary-color: 264 100 64
+      contrast-multiplier: 1.2
+    discord:
+      background-color: 223 7 21
+      primary-color: 235 86 65
+      positive-color: 139 86 65
+      negative-color: 359 83 59
+    reddit:
+      background-color: 240 2 10
+      primary-color: 16 100 50
+      negative-color: 6 63 46
+      contrast-multiplier: 1.2
+    slack:
+      background-color: 214 12 12
+      primary-color: 194 86 58
+      positive-color: 155 60 45
+      negative-color: 341 76 50
+      contrast-multiplier: 1.1
+    x-twitter:
+      background-color: 0 0 0
+      primary-color: 203 89 53
+      contrast-multiplier: 1.3
+    github:
+      background-color: 216 28 7
+      primary-color: 131 55 40
+      positive-color: 130 64 53
+      negative-color: 1 69 53
+      contrast-multiplier: 1.2
+    linkedin:
+      background-color: 207 13 13
+      primary-color: 210 90 40
+      contrast-multiplier: 1.1
+    instagram:
+      background-color: 0 0 0
+      primary-color: 340 75 54
+      negative-color: 0 98 55
+      contrast-multiplier: 1.3
+    whatsapp:
+      background-color: 202 32 10
+      primary-color: 142 70 49
+      positive-color: 167 100 33
+      contrast-multiplier: 1.2
+    telegram:
+      background-color: 210 30 13
+      primary-color: 201 85 55
+      contrast-multiplier: 1.1
+    plex:
+      background-color: 0 0 12
+      primary-color: 41 89 47
+      contrast-multiplier: 1.1
+    jellyfin:
+      background-color: 0 0 6
+      primary-color: 285 46 56
+      contrast-multiplier: 1.2
+    proton:
+      background-color: 247 14 12
+      primary-color: 252 100 65
+      contrast-multiplier: 1.1
+    playstation:
+      background-color: 210 33 9
+      primary-color: 207 100 40
+      positive-color: 103 49 53
+      negative-color: 356 66 55
+      contrast-multiplier: 1.2
+    xbox:
+      background-color: 0 0 6
+      primary-color: 82 91 49
+      contrast-multiplier: 1.2
+    steam:
+      background-color: 222 18 11
+      primary-color: 202 87 68
+      contrast-multiplier: 1.1
+    soundcloud:
+      background-color: 0 0 10
+      primary-color: 20 100 50
+      contrast-multiplier: 1.2
+    google:
+      background-color: 225 6 13
+      primary-color: 217 89 61
+      positive-color: 136 53 43
+      negative-color: 5 81 56
+      contrast-multiplier: 1.1
+
+document:
+  head: |
+    <script src="/assets/glance/wb-restricted-config.js?v=1"></script>
+    <script src="/assets/glance/wb-restricted.js?v=3" defer></script>
+    <script src="/assets/glance/wb-home.js?v=14" defer></script>
+
+pages:
+  - $include: pages/home.yml
+  - $include: pages/downloads.yml
+  - $include: pages/audio.yml
+  - $include: pages/video.yml
+  - $include: pages/infra.yml
+  - $include: pages/networking.yml
+  - $include: pages/tools.yml
+  - $include: pages/cameras.yml
+  - $include: data/news.yml
+  - $include: data/video-news.yml
+  - $include: data/bookmarks.yml

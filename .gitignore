@@ -1,0 +1,17 @@
+# secrets and local state must never be committed
+.env
+*.env
+!.env.example
+**/data/cache/
+**/data/covers/
+**/data/notes.local.json
+opt/glance/assets/favicons/
+opt/glance/assets/glance/wb-restricted-config.local.js
+legacy/
+*.bak
+*.tmp
+__pycache__/
+*.pyc
+
+# names of the private apps the sanitiser hides (never publish)
+scripts/.private-renames.json

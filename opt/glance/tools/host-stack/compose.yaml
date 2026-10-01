@@ -1,0 +1,29 @@
+# Glance host stack: stats agent + read-only container lister, for the Glance dashboard on 192.168.1.110.
+# Both ports are LAN-only and token-protected. Remove with: docker compose down
+services:
+  glance-agent:
+    image: glanceapp/agent
+    container_name: glance-agent
+    environment:
+      TOKEN: ${AGENT_TOKEN}
+      MOUNTPOINTS: ${AGENT_MOUNTPOINTS}
+    volumes:
+      - /:/host-root:ro
+    ports:
+      - "27973:27973"
+    mem_limit: 64m
+    restart: unless-stopped
+
+  glance-lister:
+    build: ./lister
+    image: glance-lister:local
+    container_name: glance-lister
+    environment:
+      TOKEN: ${AGENT_TOKEN}
+      HOST_LABEL: ${HOST_LABEL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "27974:27974"
+    mem_limit: 64m
+    restart: unless-stopped

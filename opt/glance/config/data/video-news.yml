@@ -1,0 +1,37 @@
+- name: Video News Feed
+  slug: video-news
+  width: wide
+  columns:
+    - size: full
+      widgets:
+        - type: html
+          source: |
+            <div class="widget-header"><h2 class="uppercase">Channels</h2></div>
+            <div data-wb="channels" data-wb-noindex></div>
+
+        - type: videos
+          title: "Oloff"
+          title-url: "https://www.youtube.com/channel/UCu3IhMzYtC93HTzuIua090A"
+          channels:
+            - UCu3IhMzYtC93HTzuIua090A
+          style: horizontal-cards
+          limit: 14
+          cache: 30m
+
+        - type: videos
+          title: "NPR Music"
+          title-url: "https://www.youtube.com/channel/UC4eYXhJI4-7wSWc8UNRwD4A"
+          channels:
+            - UC4eYXhJI4-7wSWc8UNRwD4A
+          style: horizontal-cards
+          limit: 14
+          cache: 30m
+
+        - type: videos
+          title: "The Pete Doherty Show"
+          title-url: "https://www.youtube.com/channel/UCaW6opPrLw6bRELCX6SgeRA"
+          channels:
+            - UCaW6opPrLw6bRELCX6SgeRA
+          style: horizontal-cards
+          limit: 14
+          cache: 30m

@@ -1,0 +1,891 @@
+{
+ "columns": [
+  {
+   "size": "small",
+   "groups": [
+    {
+     "id": "g25da050880",
+     "title": "Search",
+     "color": "200 60 60",
+     "links": [
+      {
+       "id": "l0ec768db92",
+       "title": "Startpage",
+       "url": "https://www.startpage.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l89595b47f7",
+       "title": "DuckDuckGo",
+       "url": "https://duckduckgo.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l3769bb9754",
+       "title": "Google",
+       "url": "https://www.google.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "le0ad90a0b9",
+       "title": "Yandex",
+       "url": "https://yandex.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l6867a888ac",
+       "title": "Wolfram|Alpha",
+       "url": "https://www.wolframalpha.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "le5e0227d8b",
+       "title": "Perplexity",
+       "url": "https://www.perplexity.ai/",
+       "icon": "mdi:link-variant"
+      }
+     ]
+    },
+    {
+     "id": "g97f3f0c753",
+     "title": "Dev",
+     "color": "150 50 55",
+     "links": [
+      {
+       "id": "l67ffaf61ab",
+       "title": "Excalidraw",
+       "url": "https://excalidraw.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "lc31056e330",
+       "title": "Code Beautify",
+       "url": "https://codebeautify.org/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l4efd284973",
+       "title": "Firefox Extensions",
+       "url": "https://addons.mozilla.org/en-GB/firefox/extensions/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l24c37a5c18",
+       "title": "Chrome Web Store",
+       "url": "https://chromewebstore.google.com/",
+       "icon": "si:googlechrome"
+      },
+      {
+       "id": "l39ab02b5de",
+       "title": "GreasyFork",
+       "url": "https://greasyfork.org/en",
+       "icon": "mdi:link-variant"
+      }
+     ]
+    },
+    {
+     "id": "gf6f93f1b2d",
+     "title": "Network tools",
+     "color": "190 55 58",
+     "links": [
+      {
+       "id": "l83c5cc1040",
+       "title": "Tailscale admin",
+       "url": "https://login.tailscale.com/admin/machines",
+       "icon": "si:tailscale"
+      },
+      {
+       "id": "l5430826ecc",
+       "title": "Speedtest",
+       "url": "https://www.speedtest.net/",
+       "icon": "si:speedtest"
+      },
+      {
+       "id": "l99b7074631",
+       "title": "fast.com",
+       "url": "https://fast.com/",
+       "icon": "mdi:speedometer"
+      },
+      {
+       "id": "l9b0934de2e",
+       "title": "DNS leak test",
+       "url": "https://www.dnsleaktest.com/",
+       "icon": "mdi:dns"
+      },
+      {
+       "id": "l69a15d7366",
+       "title": "What's my IP",
+       "url": "https://ipinfo.io/",
+       "icon": "mdi:ip-network"
+      },
+      {
+       "id": "l7300f78476",
+       "title": "Cloudflare Radar",
+       "url": "https://radar.cloudflare.com/",
+       "icon": "si:cloudflare"
+      },
+      {
+       "id": "l4888ea1463",
+       "title": "Down for everyone?",
+       "url": "https://downforeveryoneorjustme.com/",
+       "icon": "mdi:cloud-question"
+      },
+      {
+       "id": "l8ea019056f",
+       "title": "Shodan",
+       "url": "https://www.shodan.io/",
+       "icon": "si:shodan"
+      },
+      {
+       "id": "l95cf95043f",
+       "title": "Have I Been Pwned",
+       "url": "https://haveibeenpwned.com/",
+       "icon": "mdi:shield-alert"
+      },
+      {
+       "id": "l7665cf3ede",
+       "title": "DNSChecker.org",
+       "url": "https://dnschecker.org/",
+       "icon": "mdi:dns-outline"
+      },
+      {
+       "id": "l3f4f9794f4",
+       "title": "MXToolbox",
+       "url": "https://mxtoolbox.com/",
+       "icon": "mdi:toolbox-outline"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "size": "full",
+   "groups": [
+    {
+     "id": "g3c493836dd",
+     "title": "AI",
+     "color": "280 60 60",
+     "links": [
+      {
+       "id": "la68f840d32",
+       "title": "ChatGPT",
+       "url": "https://chat.openai.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l9a4e59c06a",
+       "title": "Copilot",
+       "url": "https://github.com/copilot",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "lc2767ab40d",
+       "title": "DuckAI",
+       "url": "https://duck.ai/chat",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "le7e513716c",
+       "title": "Lumo",
+       "url": "https://lumo.proton.me/u/4/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l35f6a0c496",
+       "title": "DeepSeek",
+       "url": "https://chat.deepseek.com/",
+       "icon": "si:deepseek"
+      },
+      {
+       "id": "l97416191dc",
+       "title": "Llama Coder",
+       "url": "https://llamacoder.together.ai/",
+       "icon": "mdi:robot"
+      },
+      {
+       "id": "l4368f7209c",
+       "title": "LLM Explorer",
+       "url": "https://llm-explorer.com/list/",
+       "icon": "mdi:brain"
+      },
+      {
+       "id": "l58b1a1b745",
+       "title": "Claude",
+       "url": "https://claude.ai/chat/",
+       "icon": "si:claude"
+      },
+      {
+       "id": "l00a3e54677",
+       "title": "Google Gemini",
+       "url": "https://gemini.google.com/",
+       "icon": "mdi:google"
+      },
+      {
+       "id": "l1a8b5b5136",
+       "title": "Grok",
+       "url": "https://grok.com/",
+       "icon": "mdi:robot-outline"
+      },
+      {
+       "id": "l3b315b2d7f",
+       "title": "Poe",
+       "url": "https://poe.com/",
+       "icon": "mdi:forum-outline"
+      }
+     ]
+    },
+    {
+     "id": "ge5a98e54b0",
+     "title": "Internet",
+     "color": "210 50 60",
+     "links": [
+      {
+       "id": "lb5ea35e755",
+       "title": "Reddit",
+       "url": "https://redlib.catsarch.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l779d3f9eb0",
+       "title": "YouTube",
+       "url": "https://www.youtube.com/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l7b0b2e2bc5",
+       "title": "MusicBrainz",
+       "url": "https://musicbrainz.org/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "lc08e0b6696",
+       "title": "Internet Archive",
+       "url": "https://archive.org/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l26f6c758ce",
+       "title": "Wikipedia",
+       "url": "https://www.wikipedia.org/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l9f669947af",
+       "title": "Amazon",
+       "url": "https://www.amazon.co.uk/",
+       "icon": "mdi:link-variant"
+      },
+      {
+       "id": "l686c7ff6d0",
+       "title": "Thought Maybe",
+       "url": "https://thoughtmaybe.com/",
+       "icon": "mdi:movie-play"
+      },
+      {
+       "id": "lab6d57405b",
+       "title": "Just Delete Me",
+       "url": "https://justdeleteme.xyz/",
+       "icon": "mdi:account-remove"
+      },
+      {
+       "id": "l03d3a65af6",
+       "title": "FckSignups",
+       "url": "https://fcksignups.com/",
+       "icon": "mdi:shield-off"
+      }
+     ]
+    },
+    {
+     "id": "ge54231eab1",
+     "title": "Music",
+     "color": "45 70 60",
+     "links": [
+      {
+       "id": "l90c7b2fb82",
+       "title": "Vulgar Picture",
+       "url": "http://www.vulgarpicture.com/",
+       "icon": "mdi:music-circle"
+      },
+      {
+       "id": "l0e070a4ab9",
+       "title": "UptheAlbion",
+       "url": "https://upthealbion.com/",
+       "icon": "mdi:microphone-variant"
+      },
+      {
+       "id": "l793f5411aa",
+       "title": "Morrissey-solo",
+       "url": "https://www.morrissey-solo.com",
+       "icon": "mdi:microphone"
+      },
+      {
+       "id": "ledce245a5b",
+       "title": "Chosic",
+       "url": "https://www.chosic.com/",
+       "icon": "mdi:music-note"
+      },
+      {
+       "id": "la7515ac33d",
+       "title": "Dynamic Range DB",
+       "url": "https://dr.loudness-war.info/",
+       "icon": "mdi:chart-bar"
+      },
+      {
+       "id": "l59be8b001d",
+       "title": "MH Wiki",
+       "url": "https://musichoarders.xyz/guides/ripping-cds/ripping-on-windows/",
+       "icon": "mdi:disc"
+      },
+      {
+       "id": "l6d38c6a0a7",
+       "title": "Radio Garden",
+       "url": "https://radio.garden/",
+       "icon": "mdi:radio"
+      },
+      {
+       "id": "l5a5a090939",
+       "title": "COV",
+       "url": "https://covers.musichoarders.xyz/",
+       "icon": "mdi:image-search"
+      },
+      {
+       "id": "lab87b87b4c",
+       "title": "ISRC Hunt",
+       "url": "https://isrchunt.com/",
+       "icon": "mdi:barcode-scan"
+      }
+     ]
+    },
+    {
+     "id": "g21258e0e39",
+     "title": "Music reference",
+     "color": "45 60 62",
+     "links": [
+      {
+       "id": "l091ca650a6",
+       "title": "MusicBrainz",
+       "url": "https://musicbrainz.org/",
+       "icon": "si:musicbrainz"
+      },
+      {
+       "id": "l90fdbafd42",
+       "title": "Discogs",
+       "url": "https://www.discogs.com/",
+       "icon": "si:discogs"
+      },
+      {
+       "id": "le6d2d27a68",
+       "title": "Rate Your Music",
+       "url": "https://rateyourmusic.com/",
+       "icon": "mdi:star-half-full"
+      },
+      {
+       "id": "lea3826b337",
+       "title": "Last.fm",
+       "url": "https://www.last.fm/",
+       "icon": "si:lastdotfm"
+      },
+      {
+       "id": "l6a544f2f93",
+       "title": "Bandcamp",
+       "url": "https://bandcamp.com/",
+       "icon": "si:bandcamp"
+      },
+      {
+       "id": "l658f6b7f8b",
+       "title": "Setlist.fm",
+       "url": "https://www.setlist.fm/",
+       "icon": "mdi:playlist-music"
+      },
+      {
+       "id": "l459f752598",
+       "title": "WhoSampled",
+       "url": "https://www.whosampled.com/",
+       "icon": "mdi:music-note-eighth"
+      },
+      {
+       "id": "l27476a5d4b",
+       "title": "Genius",
+       "url": "https://genius.com/",
+       "icon": "si:genius"
+      },
+      {
+       "id": "l38cf7ce0d2",
+       "title": "Album of the Year",
+       "url": "https://www.albumoftheyear.org/",
+       "icon": "mdi:trophy-outline"
+      },
+      {
+       "id": "l029e3083d9",
+       "title": "AcoustID",
+       "url": "https://acoustid.org/",
+       "icon": "mdi:fingerprint"
+      },
+      {
+       "id": "lbe0e63bf58",
+       "title": "Cover Art Archive",
+       "url": "https://coverartarchive.org/",
+       "icon": "mdi:image-multiple"
+      },
+      {
+       "id": "lb11de1b14b",
+       "title": "Picard docs",
+       "url": "https://picard-docs.musicbrainz.org/",
+       "icon": "mdi:tag-text"
+      },
+      {
+       "id": "l173349bb21",
+       "title": "45cat",
+       "url": "https://www.45cat.com/",
+       "icon": "mdi:record-circle-outline"
+      },
+      {
+       "id": "l7b91310a0e",
+       "title": "45worlds",
+       "url": "https://www.45worlds.com/",
+       "icon": "mdi:record-circle-outline"
+      }
+     ]
+    },
+    {
+     "id": "gd82af390cf",
+     "title": "Homelab docs",
+     "color": "160 45 55",
+     "links": [
+      {
+       "id": "le6dd5d3a8e",
+       "title": "Servarr wiki",
+       "url": "https://wiki.servarr.com/",
+       "icon": "mdi:book-open-variant"
+      },
+      {
+       "id": "l9bbdb57079",
+       "title": "TRaSH guides",
+       "url": "https://trash-guides.info/",
+       "icon": "mdi:delete-variant"
+      },
+      {
+       "id": "l6032ef10a8",
+       "title": "Proxmox docs",
+       "url": "https://pve.proxmox.com/pve-docs/",
+       "icon": "si:proxmox"
+      },
+      {
+       "id": "la515fe5999",
+       "title": "PBS docs",
+       "url": "https://pbs.proxmox.com/docs/",
+       "icon": "si:proxmox"
+      },
+      {
+       "id": "lbcf576b6dd",
+       "title": "Pi-hole docs",
+       "url": "https://docs.pi-hole.net/",
+       "icon": "si:pihole"
+      },
+      {
+       "id": "la7d2b140a2",
+       "title": "Unbound docs",
+       "url": "https://unbound.docs.nlnetlabs.nl/",
+       "icon": "mdi:dns"
+      },
+      {
+       "id": "l5cba0659a1",
+       "title": "Jellyfin docs",
+       "url": "https://jellyfin.org/docs/",
+       "icon": "si:jellyfin"
+      },
+      {
+       "id": "la4de693ef9",
+       "title": "Navidrome docs",
+       "url": "https://www.navidrome.org/docs/",
+       "icon": "mdi:music-box"
+      },
+      {
+       "id": "l0a1e7aa053",
+       "title": "Glance docs",
+       "url": "https://github.com/glanceapp/glance/blob/main/docs/configuration.md",
+       "icon": "mdi:view-dashboard-variant"
+      },
+      {
+       "id": "lff44a8d368",
+       "title": "Docker docs",
+       "url": "https://docs.docker.com/",
+       "icon": "si:docker"
+      },
+      {
+       "id": "lf4287449aa",
+       "title": "Compose spec",
+       "url": "https://docs.docker.com/reference/compose-file/",
+       "icon": "si:docker"
+      },
+      {
+       "id": "lde97f52cd5",
+       "title": "Home Assistant docs",
+       "url": "https://www.home-assistant.io/docs/",
+       "icon": "si:homeassistant"
+      },
+      {
+       "id": "l822569d331",
+       "title": "Frigate docs",
+       "url": "https://docs.frigate.video/",
+       "icon": "mdi:cctv"
+      },
+      {
+       "id": "l6a488fa702",
+       "title": "Tailscale KB",
+       "url": "https://tailscale.com/kb",
+       "icon": "si:tailscale"
+      },
+      {
+       "id": "l7e97b0293a",
+       "title": "D-Link DGS-1520 support",
+       "url": "https://eu.dlink.com/uk/en/products/dgs-1520-52-52-port-smart-managed-switch",
+       "icon": "mdi:lan"
+      },
+      {
+       "id": "lcba005d36e",
+       "title": "slskd wiki",
+       "url": "https://github.com/slskd/slskd/wiki",
+       "icon": "mdi:book-open-variant"
+      },
+      {
+       "id": "lf1b8296aa9",
+       "title": "OpenSubsonic API",
+       "url": "https://opensubsonic.netlify.app/",
+       "icon": "mdi:api"
+      }
+     ]
+    },
+    {
+     "id": "gc73a0a7814",
+     "title": "Film & TV",
+     "color": "20 60 60",
+     "links": [
+      {
+       "id": "l109444fd72",
+       "title": "TMDB",
+       "url": "https://www.themoviedb.org/",
+       "icon": "si:themoviedatabase"
+      },
+      {
+       "id": "l0bac58bc27",
+       "title": "TheTVDB",
+       "url": "https://thetvdb.com/",
+       "icon": "mdi:television-classic"
+      },
+      {
+       "id": "l8ac278a317",
+       "title": "IMDb",
+       "url": "https://www.imdb.com/",
+       "icon": "si:imdb"
+      },
+      {
+       "id": "l0195c143ae",
+       "title": "Trakt",
+       "url": "https://trakt.tv/",
+       "icon": "si:trakt"
+      },
+      {
+       "id": "l5cb36ca448",
+       "title": "Letterboxd",
+       "url": "https://letterboxd.com/",
+       "icon": "si:letterboxd"
+      },
+      {
+       "id": "lb0446fff38",
+       "title": "JustWatch UK",
+       "url": "https://www.justwatch.com/uk",
+       "icon": "mdi:play-box-multiple"
+      },
+      {
+       "id": "lbcb6610e85",
+       "title": "Radio Times TV guide",
+       "url": "https://www.radiotimes.com/tv/tv-listings/",
+       "icon": "mdi:television-guide"
+      },
+      {
+       "id": "la85190734a",
+       "title": "Mediux",
+       "url": "https://mediux.pro/",
+       "icon": "mdi:image-frame"
+      },
+      {
+       "id": "ldd9b6e2533",
+       "title": "Fanart.tv",
+       "url": "https://fanart.tv/",
+       "icon": "mdi:palette-outline"
+      },
+      {
+       "id": "l4fa12b9ed3",
+       "title": "MDBList",
+       "url": "https://mdblist.com/",
+       "icon": "mdi:playlist-star"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "size": "small",
+   "groups": [
+    {
+     "id": "g0970fe812d",
+     "title": "Self-hosting",
+     "color": "260 50 62",
+     "links": [
+      {
+       "id": "le43288e042",
+       "title": "awesome-selfhosted",
+       "url": "https://awesome-selfhosted.net/",
+       "icon": "mdi:star-circle"
+      },
+      {
+       "id": "ld91a21ebf7",
+       "title": "selfh.st",
+       "url": "https://selfh.st/",
+       "icon": "mdi:server"
+      },
+      {
+       "id": "l1ef6c19d9c",
+       "title": "selfh.st icons",
+       "url": "https://selfh.st/icons/",
+       "icon": "mdi:emoticon-outline"
+      },
+      {
+       "id": "lc76eb079ed",
+       "title": "LinuxServer.io",
+       "url": "https://docs.linuxserver.io/",
+       "icon": "si:linuxserver"
+      },
+      {
+       "id": "l5b52c6f690",
+       "title": "hotio images",
+       "url": "https://hotio.dev/",
+       "icon": "mdi:docker"
+      },
+      {
+       "id": "l712a8ddda7",
+       "title": "Docker Hub",
+       "url": "https://hub.docker.com/",
+       "icon": "si:docker"
+      },
+      {
+       "id": "lbbff7d8d51",
+       "title": "Dockge",
+       "url": "https://github.com/louislam/dockge",
+       "icon": "mdi:docker"
+      },
+      {
+       "id": "lbf074330d7",
+       "title": "Tubifarry",
+       "url": "https://github.com/TypNull/Tubifarry",
+       "icon": "si:github"
+      },
+      {
+       "id": "l18db5c4259",
+       "title": "Glance",
+       "url": "https://github.com/glanceapp/glance",
+       "icon": "si:github"
+      },
+      {
+       "id": "l0eb8c0a702",
+       "title": "slskd",
+       "url": "https://github.com/slskd/slskd",
+       "icon": "si:github"
+      },
+      {
+       "id": "l09d3d172bf",
+       "title": "Uptime Kuma",
+       "url": "https://github.com/louislam/uptime-kuma",
+       "icon": "si:github"
+      },
+      {
+       "id": "lb58d9f6682",
+       "title": "Portainer",
+       "url": "https://www.portainer.io/",
+       "icon": "si:portainer"
+      }
+     ]
+    },
+    {
+     "id": "g459728734b",
+     "title": "AI & dev docs",
+     "color": "280 45 62",
+     "links": [
+      {
+       "id": "laec3fe1bf3",
+       "title": "Claude Code docs",
+       "url": "https://docs.anthropic.com/en/docs/claude-code",
+       "icon": "si:anthropic"
+      },
+      {
+       "id": "lc281c516df",
+       "title": "Anthropic docs",
+       "url": "https://docs.anthropic.com/",
+       "icon": "si:anthropic"
+      },
+      {
+       "id": "l7017b3edf0",
+       "title": "Hugging Face",
+       "url": "https://huggingface.co/",
+       "icon": "si:huggingface"
+      },
+      {
+       "id": "l01b33ea6a7",
+       "title": "OpenRouter",
+       "url": "https://openrouter.ai/",
+       "icon": "mdi:router-network"
+      },
+      {
+       "id": "ld766e83c9b",
+       "title": "GitHub trending",
+       "url": "https://github.com/trending",
+       "icon": "si:github"
+      },
+      {
+       "id": "l2842362cf6",
+       "title": "MDN",
+       "url": "https://developer.mozilla.org/",
+       "icon": "si:mdnwebdocs"
+      },
+      {
+       "id": "lffe03960ba",
+       "title": "Python docs",
+       "url": "https://docs.python.org/3/",
+       "icon": "si:python"
+      },
+      {
+       "id": "l39358ffa33",
+       "title": "regex101",
+       "url": "https://regex101.com/",
+       "icon": "mdi:regex"
+      },
+      {
+       "id": "l1105c72ce2",
+       "title": "DevDocs",
+       "url": "https://devdocs.io/",
+       "icon": "mdi:book-open-page-variant"
+      },
+      {
+       "id": "l3328e365d8",
+       "title": "Crontab guru",
+       "url": "https://crontab.guru/",
+       "icon": "mdi:clock-outline"
+      },
+      {
+       "id": "le462cd9f3c",
+       "title": "Stack Overflow",
+       "url": "https://stackoverflow.com/",
+       "icon": "si:stackoverflow"
+      },
+      {
+       "id": "l6255cac0fe",
+       "title": "explainshell",
+       "url": "https://explainshell.com/",
+       "icon": "mdi:console-line"
+      }
+     ]
+    },
+    {
+     "id": "ge6594c9fd2",
+     "title": "UK shopping",
+     "color": "330 45 60",
+     "links": [
+      {
+       "id": "l5ba453112e",
+       "title": "eBay UK",
+       "url": "https://www.ebay.co.uk/",
+       "icon": "si:ebay"
+      },
+      {
+       "id": "l1a1f10fe0f",
+       "title": "CeX",
+       "url": "https://uk.webuy.com/",
+       "icon": "mdi:disc"
+      },
+      {
+       "id": "l6b4eba6025",
+       "title": "Scan",
+       "url": "https://www.scan.co.uk/",
+       "icon": "mdi:memory"
+      },
+      {
+       "id": "l37159043c4",
+       "title": "CCL",
+       "url": "https://www.cclonline.com/",
+       "icon": "mdi:desktop-tower"
+      },
+      {
+       "id": "lcd238b2750",
+       "title": "FS.com",
+       "url": "https://www.fs.com/uk/",
+       "icon": "mdi:cable-data"
+      },
+      {
+       "id": "lc159039cb9",
+       "title": "Argos",
+       "url": "https://www.argos.co.uk/",
+       "icon": "mdi:cart"
+      },
+      {
+       "id": "l4923f4054f",
+       "title": "Rough Trade",
+       "url": "https://www.roughtrade.com/",
+       "icon": "mdi:album"
+      },
+      {
+       "id": "le93b3c117b",
+       "title": "HMV",
+       "url": "https://hmv.com/",
+       "icon": "mdi:disc-player"
+      },
+      {
+       "id": "l65d09568f0",
+       "title": "PriceSpy",
+       "url": "https://pricespy.co.uk/",
+       "icon": "mdi:tag-search"
+      },
+      {
+       "id": "lcd6511274d",
+       "title": "CamelCamelCamel",
+       "url": "https://uk.camelcamelcamel.com/",
+       "icon": "mdi:chart-line"
+      },
+      {
+       "id": "le71370b111",
+       "title": "Overclockers UK",
+       "url": "https://www.overclockers.co.uk/",
+       "icon": "mdi:cpu-64-bit"
+      },
+      {
+       "id": "l402ec3afce",
+       "title": "Novatech",
+       "url": "https://www.novatech.co.uk/",
+       "icon": "mdi:desktop-tower-monitor"
+      },
+      {
+       "id": "l89a27180f1",
+       "title": "Currys",
+       "url": "https://www.currys.co.uk/",
+       "icon": "mdi:television-classic"
+      }
+     ]
+    },
+    {
+     "id": "gprivateexamp",
+     "title": "Private",
+     "color": "85 55 60",
+     "private": true,
+     "links": [
+      {
+       "id": "lprivateexamp",
+       "title": "Example private link",
+       "url": "http://192.168.1.50:2283",
+       "icon": "mdi:lock"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

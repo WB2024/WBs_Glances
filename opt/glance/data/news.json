@@ -1,0 +1,199 @@
+{
+ "groups": [
+  {
+   "id": "tech",
+   "kind": "rss",
+   "title": "Tech news",
+   "column": "left",
+   "style": "vertical-list",
+   "limit": 20,
+   "collapse": 8,
+   "extra": "",
+   "feeds": [
+    {
+     "url": "https://www.theregister.com/headlines.atom",
+     "title": "The Register"
+    },
+    {
+     "url": "https://feeds.arstechnica.com/arstechnica/index",
+     "title": "Ars Technica"
+    },
+    {
+     "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+     "title": "BBC Tech"
+    }
+   ]
+  },
+  {
+   "id": "uk",
+   "kind": "rss",
+   "title": "UK & local",
+   "column": "left",
+   "style": "vertical-list",
+   "limit": 18,
+   "collapse": 6,
+   "extra": "",
+   "feeds": [
+    {
+     "url": "https://feeds.bbci.co.uk/news/uk/rss.xml",
+     "title": "BBC UK"
+    },
+    {
+     "url": "https://feeds.bbci.co.uk/news/england/manchester/rss.xml",
+     "title": "BBC Manchester"
+    },
+    {
+     "url": "https://feeds.bbci.co.uk/news/england/rss.xml",
+     "title": "BBC England"
+    }
+   ]
+  },
+  {
+   "id": "music",
+   "kind": "rss",
+   "title": "Music",
+   "column": "centre",
+   "style": "horizontal-cards",
+   "limit": 30,
+   "collapse": 8,
+   "extra": "  card-height: 24\n",
+   "feeds": [
+    {
+     "url": "https://pitchfork.com/feed/feed-album-reviews/rss",
+     "title": "Pitchfork reviews"
+    },
+    {
+     "url": "https://thequietus.com/feed",
+     "title": "The Quietus"
+    },
+    {
+     "url": "https://www.stereogum.com/feed",
+     "title": "Stereogum"
+    },
+    {
+     "url": "https://www.nme.com/news/music/feed",
+     "title": "NME"
+    },
+    {
+     "url": "https://blog.musicbrainz.org/feed/",
+     "title": "MusicBrainz blog"
+    }
+   ]
+  },
+  {
+   "id": "r_music",
+   "kind": "reddit",
+   "title": "Reddit: music",
+   "column": "centre",
+   "subs": [
+    "Lidarr",
+    "Soulseek",
+    "musichoarder",
+    "navidrome",
+    "spotify",
+    "jukeboxes",
+    "vinyl"
+   ]
+  },
+  {
+   "id": "r_taste",
+   "kind": "reddit",
+   "title": "Reddit: taste",
+   "column": "centre",
+   "subs": [
+    "SongsThatFeelLikeThis",
+    "Courtneylove",
+    "Hole"
+   ]
+  },
+  {
+   "id": "homelab",
+   "kind": "rss",
+   "title": "Homelab & self-hosting",
+   "column": "centre",
+   "style": "detailed-list",
+   "limit": 24,
+   "collapse": 6,
+   "extra": "",
+   "feeds": [
+    {
+     "url": "https://selfh.st/rss/",
+     "title": "selfh.st"
+    },
+    {
+     "url": "https://pi-hole.net/feed/",
+     "title": "Pi-hole"
+    },
+    {
+     "url": "https://www.home-assistant.io/atom.xml",
+     "title": "Home Assistant"
+    },
+    {
+     "url": "https://tailscale.com/blog/index.xml",
+     "title": "Tailscale"
+    },
+    {
+     "url": "https://forum.proxmox.com/forums/-/index.rss",
+     "title": "Proxmox forum"
+    },
+    {
+     "url": "https://torrentfreak.com/feed/",
+     "title": "TorrentFreak"
+    }
+   ]
+  },
+  {
+   "id": "r_self",
+   "kind": "reddit",
+   "title": "Reddit: self-hosting",
+   "column": "centre",
+   "subs": [
+    "selfhosted",
+    "homelab",
+    "Proxmox",
+    "pihole",
+    "homeassistant",
+    "jellyfin"
+   ]
+  },
+  {
+   "id": "r_data",
+   "kind": "reddit",
+   "title": "Reddit: data hoarding",
+   "column": "centre",
+   "subs": [
+    "DataHoarder",
+    "datacurator",
+    "opendirectories",
+    "backup",
+    "Softwarr",
+    "MXLinux",
+    "linuxmint"
+   ]
+  },
+  {
+   "id": "r_excel",
+   "kind": "reddit",
+   "title": "Reddit: Excel & work",
+   "column": "right",
+   "subs": [
+    "excel",
+    "ExcelPowerQuery"
+   ]
+  },
+  {
+   "id": "r_media",
+   "kind": "reddit",
+   "title": "Reddit: media & obscure",
+   "column": "right",
+   "subs": [
+    "Piracy",
+    "PiratedGames",
+    "ObscureMedia",
+    "lostmedia",
+    "FanTheories",
+    "MoviesThatFeelLike"
+   ]
+  }
+ ]
+}

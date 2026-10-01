@@ -1,0 +1,432 @@
+- name: Infra
+  slug: infra
+  width: wide
+  columns:
+    - size: full
+      widgets:
+        - type: split-column
+          max-columns: 3
+          widgets:
+            - type: custom-api
+              title: pve4
+              title-url: https://${HOST_PVE4}:8006
+              cache: 1m
+              url: http://${HOST_SVC}:3005/api/infra/summary
+              template: |
+
+                {{ range .JSON.Array "nodes" }}{{ if eq (.String "name") "pve4" }}
+                {{ if .Bool "ok" }}
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 {{ if gt (.Int "cpu_pct") 80 }}color-negative{{ else }}color-highlight{{ end }}">{{ .Int "cpu_pct" }}%</div><div class="size-h6">CPU &middot; {{ .Int "cpus" }} cores</div></div>
+                  <div><div class="size-h3 {{ if gt (.Int "mem_pct") 90 }}color-negative{{ else }}color-highlight{{ end }}">{{ .Int "mem_pct" }}%</div><div class="size-h6">RAM &middot; {{ printf "%.0f" (.Float "mem_total_gb") }}G</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .Float "load" }}</div><div class="size-h6">LOAD 1M</div></div>
+                  <div><div class="size-h3 {{ if gt (.Int "rootfs_pct") 85 }}color-negative{{ else }}color-highlight{{ end }}">{{ .Int "rootfs_pct" }}%</div><div class="size-h6">ROOTFS</div></div>
+                  <div><div class="size-h3 color-highlight">{{ printf "%.1f" (.Float "uptime_d") }}d</div><div class="size-h6">UPTIME</div></div>
+                </div>
+                <div class="size-h6 color-subdue margin-bottom-10">pve {{ .String "pve" }} &middot; kernel {{ .String "kernel" }}</div>
+
+                <ul class="list list-gap-10 size-h6">
+                {{ range .Array "guests" }}
+                  <li>
+                    <div class="flex justify-between gap-10">
+                      <span class="text-truncate"><span class="color-subdue">{{ if eq (.String "kind") "lxc" }}CT{{ else }}VM{{ end }}{{ .Int "vmid" }}</span> {{ .String "name" }}</span>
+                      <span class="shrink-0">{{ if eq (.String "status") "running" }}<span class="color-positive">&#9679;</span> {{ .Int "cpu_pct" }}% cpu{{ else }}<span class="color-subdue">&#9675; {{ .String "status" }}</span>{{ end }}</span>
+                    </div>
+                    <div class="flex justify-between size-h6"><span class="color-subdue">RAM</span><span>{{ .Int "mem_mb" }} / {{ .Int "maxmem_mb" }} MB</span></div><div class="progress-bar margin-bottom-4"><div class="progress-value{{ if gt (.Int "mem_pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "mem_pct" }}"></div></div>
+                    <div class="flex justify-between size-h6"><span class="color-subdue">Disk</span><span>{{ printf "%.1f" (.Float "disk_gb") }} / {{ printf "%.0f" (.Float "maxdisk_gb") }} GB</span></div><div class="progress-bar margin-bottom-4"><div class="progress-value{{ if gt (.Int "disk_pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "disk_pct" }}"></div></div>
+                  </li>
+                {{ end }}
+                </ul>
+
+                <div class="size-h6 margin-top-10 {{ if gt (.Int "failed_7d") 0 }}color-negative{{ else }}color-positive{{ end }}">FAILED TASKS &middot; 7 DAYS: {{ .Int "failed_7d" }}</div>
+                {{ range .Array "failed_latest" }}{{ if lt (.Int "age_h") 168 }}<div class="size-h6 color-subdue text-truncate">{{ .String "type" }} {{ .String "id" }} &middot; {{ .Int "age_h" }}h ago &middot; {{ .String "status" }}</div>{{ end }}{{ end }}
+                <div class="size-h6 margin-top-5 {{ if .Bool "backed_up" }}color-subdue{{ else }}color-negative{{ end }}">{{ if .Bool "backed_up" }}host backup {{ .Int "backup_h" }}h ago{{ else }}no host backup in PBS{{ end }}</div>
+                {{ else }}<p class="color-negative">Proxmox API unreachable: {{ .String "err" }}</p>{{ end }}
+                {{ end }}{{ end }}
+
+
+            - type: custom-api
+              title: pve2
+              title-url: https://${HOST_PVE2}:8006
+              cache: 1m
+              url: http://${HOST_SVC}:3005/api/infra/summary
+              template: |
+
+                {{ range .JSON.Array "nodes" }}{{ if eq (.String "name") "pve2" }}
+                {{ if .Bool "ok" }}
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 {{ if gt (.Int "cpu_pct") 80 }}color-negative{{ else }}color-highlight{{ end }}">{{ .Int "cpu_pct" }}%</div><div class="size-h6">CPU &middot; {{ .Int "cpus" }} cores</div></div>
+                  <div><div class="size-h3 {{ if gt (.Int "mem_pct") 90 }}color-negative{{ else }}color-highlight{{ end }}">{{ .Int "mem_pct" }}%</div><div class="size-h6">RAM &middot; {{ printf "%.0f" (.Float "mem_total_gb") }}G</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .Float "load" }}</div><div class="size-h6">LOAD 1M</div></div>
+                  <div><div class="size-h3 {{ if gt (.Int "rootfs_pct") 85 }}color-negative{{ else }}color-highlight{{ end }}">{{ .Int "rootfs_pct" }}%</div><div class="size-h6">ROOTFS</div></div>
+                  <div><div class="size-h3 color-highlight">{{ printf "%.1f" (.Float "uptime_d") }}d</div><div class="size-h6">UPTIME</div></div>
+                </div>
+                <div class="size-h6 color-subdue margin-bottom-10">pve {{ .String "pve" }} &middot; kernel {{ .String "kernel" }}</div>
+
+                <ul class="list list-gap-10 size-h6">
+                {{ range .Array "guests" }}
+                  <li>
+                    <div class="flex justify-between gap-10">
+                      <span class="text-truncate"><span class="color-subdue">{{ if eq (.String "kind") "lxc" }}CT{{ else }}VM{{ end }}{{ .Int "vmid" }}</span> {{ .String "name" }}</span>
+                      <span class="shrink-0">{{ if eq (.String "status") "running" }}<span class="color-positive">&#9679;</span> {{ .Int "cpu_pct" }}% cpu{{ else }}<span class="color-subdue">&#9675; {{ .String "status" }}</span>{{ end }}</span>
+                    </div>
+                    <div class="flex justify-between size-h6"><span class="color-subdue">RAM</span><span>{{ .Int "mem_mb" }} / {{ .Int "maxmem_mb" }} MB</span></div><div class="progress-bar margin-bottom-4"><div class="progress-value{{ if gt (.Int "mem_pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "mem_pct" }}"></div></div>
+                    <div class="flex justify-between size-h6"><span class="color-subdue">Disk</span><span>{{ printf "%.1f" (.Float "disk_gb") }} / {{ printf "%.0f" (.Float "maxdisk_gb") }} GB</span></div><div class="progress-bar margin-bottom-4"><div class="progress-value{{ if gt (.Int "disk_pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "disk_pct" }}"></div></div>
+                  </li>
+                {{ end }}
+                </ul>
+
+                <div class="size-h6 margin-top-10 {{ if gt (.Int "failed_7d") 0 }}color-negative{{ else }}color-positive{{ end }}">FAILED TASKS &middot; 7 DAYS: {{ .Int "failed_7d" }}</div>
+                {{ range .Array "failed_latest" }}{{ if lt (.Int "age_h") 168 }}<div class="size-h6 color-subdue text-truncate">{{ .String "type" }} {{ .String "id" }} &middot; {{ .Int "age_h" }}h ago &middot; {{ .String "status" }}</div>{{ end }}{{ end }}
+                <div class="size-h6 margin-top-5 {{ if .Bool "backed_up" }}color-subdue{{ else }}color-negative{{ end }}">{{ if .Bool "backed_up" }}host backup {{ .Int "backup_h" }}h ago{{ else }}no host backup in PBS{{ end }}</div>
+                {{ else }}<p class="color-negative">Proxmox API unreachable: {{ .String "err" }}</p>{{ end }}
+                {{ end }}{{ end }}
+
+
+            - type: custom-api
+              title: Proxmox Backup Server
+              title-url: https://${HOST_PBS}:8007
+              cache: 1m
+              url: http://${HOST_SVC}:3005/api/infra/summary
+              template: |
+
+                {{ if .JSON.Bool "pbs.ok" }}
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "pbs.mem_pct" }}%</div><div class="size-h6">RAM</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Float "pbs.load" }}</div><div class="size-h6">LOAD</div></div>
+                  <div><div class="size-h3 color-highlight">{{ printf "%.0f" (.JSON.Float "pbs.uptime_d") }}d</div><div class="size-h6">UPTIME</div></div>
+                </div>
+                {{ range .JSON.Array "pbs.datastores" }}
+                <div class="flex justify-between size-h6"><span class="color-subdue">{{ .String "store" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>
+                {{ end }}
+                <div class="size-h6 margin-top-10 {{ if gt (.JSON.Int "pbs.failed_7d") 0 }}color-negative{{ else }}color-positive{{ end }}">FAILED TASKS &middot; 7 DAYS: {{ .JSON.Int "pbs.failed_7d" }}</div>
+                <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">LAST BACKUP TASKS</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "pbs.recent" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate">{{ .String "name" }}</span><span class="shrink-0 {{ if eq (.String "status") "OK" }}color-positive{{ else if eq (.String "status") "running" }}color-primary{{ else }}color-negative{{ end }}">{{ .String "status" }} &middot; {{ .Int "age_h" }}h</span></li>
+                {{ end }}
+                </ul>
+                {{ else }}<p class="color-negative">PBS API unreachable: {{ .JSON.String "pbs.err" }}</p>{{ end }}
+
+
+        - type: custom-api
+          title: Dockge · services
+          title-url: http://${HOST_SVC}:5001
+          cache: 1m
+          url: http://${HOST_SVC}:3005/api/infra/summary
+          template: |
+
+            {{ if .JSON.Bool "hosts.services.ok" }}
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:0 0 24rem;max-width:100%;min-width:0">
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "hosts.services.cpu_pct") 80 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "hosts.services.cpu_pct" }}%</div><div class="size-h6">CPU</div></div>
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "hosts.services.mem_pct") 90 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "hosts.services.mem_pct" }}%</div><div class="size-h6">RAM &middot; {{ printf "%.1f" (div (.JSON.Float "hosts.services.mem_total_mb") 1024.0) }}G</div></div>
+                  {{ if gt (.JSON.Float "hosts.services.temp_c") 0.0 }}<div><div class="size-h3 {{ if gt (.JSON.Float "hosts.services.temp_c") 80.0 }}color-negative{{ else }}color-highlight{{ end }}">{{ printf "%.0f" (.JSON.Float "hosts.services.temp_c") }}&deg;C</div><div class="size-h6">CPU TEMP</div></div>{{ end }}
+                  <div><div class="size-h3 color-highlight">{{ printf "%.1f" (.JSON.Float "hosts.services.uptime_d") }}d</div><div class="size-h6">UPTIME</div></div>
+                </div>
+                {{ range .JSON.Array "hosts.services.disks" }}
+                <div class="flex justify-between size-h6"><span class="color-subdue">{{ .String "name" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>
+                {{ end }}
+                <div class="size-h6 color-subdue margin-top-10">Docker {{ .JSON.String "hosts.services.docker" }} &middot; <span class="color-positive">{{ .JSON.Int "hosts.services.running" }} running</span> &middot; {{ .JSON.Int "hosts.services.stopped" }} stopped &middot; {{ len (.JSON.Array "hosts.services.stacks") }} stacks</div>
+              </div>
+              <div class="grow" style="flex-basis:24rem;min-width:0">
+                <div class="wb-stacks" style="max-height:26rem;overflow-y:auto">
+                {{ range .JSON.Array "hosts.services.stacks" }}{{ if not (.Bool "private") }}
+                  <div class="wb-stack">
+                    <div class="wb-stack-name">{{ .String "name" }}</div>
+                    <ul class="list list-gap-4 size-h6">
+                    {{ range .Array "containers" }}
+                      <li class="text-truncate" title="{{ .String "image" }} &middot; {{ .String "status" }}"><span class="{{ if eq (.String "state") "running" }}{{ if eq (.String "health") "unhealthy" }}color-negative{{ else }}color-positive{{ end }}{{ else }}color-subdue{{ end }}">{{ if eq (.String "state") "running" }}&#9679;{{ else }}&#9675;{{ end }}</span> {{ .String "name" }}</li>
+                    {{ end }}
+                    </ul>
+                  </div>{{ end }}
+                {{ end }}
+                </div>
+              </div>
+            </div>
+            {{ else }}<p class="color-negative">Host unreachable: {{ .JSON.String "hosts.services.err" }}</p>{{ end }}
+
+        - type: custom-api
+          title: Dockge · jellyfin
+          title-url: http://${HOST_JELLY}:5001
+          cache: 1m
+          url: http://${HOST_SVC}:3005/api/infra/summary
+          template: |
+
+            {{ if .JSON.Bool "hosts.jellyfin.ok" }}
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:0 0 24rem;max-width:100%;min-width:0">
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "hosts.jellyfin.cpu_pct") 80 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "hosts.jellyfin.cpu_pct" }}%</div><div class="size-h6">CPU</div></div>
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "hosts.jellyfin.mem_pct") 90 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "hosts.jellyfin.mem_pct" }}%</div><div class="size-h6">RAM &middot; {{ printf "%.1f" (div (.JSON.Float "hosts.jellyfin.mem_total_mb") 1024.0) }}G</div></div>
+                  {{ if gt (.JSON.Float "hosts.jellyfin.temp_c") 0.0 }}<div><div class="size-h3 {{ if gt (.JSON.Float "hosts.jellyfin.temp_c") 80.0 }}color-negative{{ else }}color-highlight{{ end }}">{{ printf "%.0f" (.JSON.Float "hosts.jellyfin.temp_c") }}&deg;C</div><div class="size-h6">CPU TEMP</div></div>{{ end }}
+                  <div><div class="size-h3 color-highlight">{{ printf "%.1f" (.JSON.Float "hosts.jellyfin.uptime_d") }}d</div><div class="size-h6">UPTIME</div></div>
+                </div>
+                {{ range .JSON.Array "hosts.jellyfin.disks" }}
+                <div class="flex justify-between size-h6"><span class="color-subdue">{{ .String "name" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>
+                {{ end }}
+                <div class="size-h6 color-subdue margin-top-10">Docker {{ .JSON.String "hosts.jellyfin.docker" }} &middot; <span class="color-positive">{{ .JSON.Int "hosts.jellyfin.running" }} running</span> &middot; {{ .JSON.Int "hosts.jellyfin.stopped" }} stopped &middot; {{ len (.JSON.Array "hosts.jellyfin.stacks") }} stacks</div>
+              </div>
+              <div class="grow" style="flex-basis:24rem;min-width:0">
+                <div class="wb-stacks" style="max-height:16rem;overflow-y:auto">
+                {{ range .JSON.Array "hosts.jellyfin.stacks" }}{{ if not (.Bool "private") }}
+                  <div class="wb-stack">
+                    <div class="wb-stack-name">{{ .String "name" }}</div>
+                    <ul class="list list-gap-4 size-h6">
+                    {{ range .Array "containers" }}
+                      <li class="text-truncate" title="{{ .String "image" }} &middot; {{ .String "status" }}"><span class="{{ if eq (.String "state") "running" }}{{ if eq (.String "health") "unhealthy" }}color-negative{{ else }}color-positive{{ end }}{{ else }}color-subdue{{ end }}">{{ if eq (.String "state") "running" }}&#9679;{{ else }}&#9675;{{ end }}</span> {{ .String "name" }}</li>
+                    {{ end }}
+                    </ul>
+                  </div>{{ end }}
+                {{ end }}
+                </div>
+              </div>
+            </div>
+            {{ else }}<p class="color-negative">Host unreachable: {{ .JSON.String "hosts.jellyfin.err" }}</p>{{ end }}
+
+        - type: custom-api
+          title: Dockge · devuan
+          title-url: http://${HOST_DEVUAN}:5001
+          cache: 1m
+          url: http://${HOST_SVC}:3005/api/infra/summary
+          template: |
+
+            {{ if .JSON.Bool "hosts.devuan.ok" }}
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:0 0 24rem;max-width:100%;min-width:0">
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "hosts.devuan.cpu_pct") 80 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "hosts.devuan.cpu_pct" }}%</div><div class="size-h6">LOAD</div></div>
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "hosts.devuan.mem_pct") 90 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "hosts.devuan.mem_pct" }}%</div><div class="size-h6">RAM &middot; {{ printf "%.1f" (div (.JSON.Float "hosts.devuan.mem_total_mb") 1024.0) }}G</div></div>
+                  {{ if gt (.JSON.Float "hosts.devuan.temp_c") 0.0 }}<div><div class="size-h3 {{ if gt (.JSON.Float "hosts.devuan.temp_c") 80.0 }}color-negative{{ else }}color-highlight{{ end }}">{{ printf "%.0f" (.JSON.Float "hosts.devuan.temp_c") }}&deg;C</div><div class="size-h6">CPU TEMP</div></div>{{ end }}
+                  <div><div class="size-h3 color-highlight">{{ printf "%.1f" (.JSON.Float "hosts.devuan.uptime_d") }}d</div><div class="size-h6">UPTIME</div></div>
+                </div>
+                {{ range .JSON.Array "hosts.devuan.disks" }}
+                <div class="flex justify-between size-h6"><span class="color-subdue">{{ .String "name" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>
+                {{ end }}
+                <div class="size-h6 color-subdue margin-top-10">Docker {{ .JSON.String "hosts.devuan.docker" }} &middot; <span class="color-positive">{{ .JSON.Int "hosts.devuan.running" }} running</span> &middot; {{ .JSON.Int "hosts.devuan.stopped" }} stopped &middot; {{ len (.JSON.Array "hosts.devuan.stacks") }} stacks</div>
+              </div>
+
+            </div>
+            {{ else }}<p class="color-negative">Host unreachable: {{ .JSON.String "hosts.devuan.err" }}</p>{{ end }}
+
+        - type: custom-api
+          title: Dockge · devuan (containers)
+          title-url: http://${HOST_DEVUAN}:5001
+          css-class: wb-restricted
+          cache: 1m
+          url: http://${HOST_SVC}:3005/api/infra/summary
+          template: |
+            {{ if .JSON.Bool "hosts.devuan.ok" }}<div>  <div class="grow" style="flex-basis:24rem;min-width:0">
+                <div class="wb-stacks" style="max-height:18rem;overflow-y:auto">
+                {{ range .JSON.Array "hosts.devuan.stacks" }}
+                  <div class="wb-stack">
+                    <div class="wb-stack-name">{{ .String "name" }}</div>
+                    <ul class="list list-gap-4 size-h6">
+                    {{ range .Array "containers" }}
+                      <li class="text-truncate" title="{{ .String "image" }} &middot; {{ .String "status" }}"><span class="{{ if eq (.String "state") "running" }}{{ if eq (.String "health") "unhealthy" }}color-negative{{ else }}color-positive{{ end }}{{ else }}color-subdue{{ end }}">{{ if eq (.String "state") "running" }}&#9679;{{ else }}&#9675;{{ end }}</span> {{ .String "name" }}</li>
+                    {{ end }}
+                    </ul>
+                  </div>
+                {{ end }}
+                </div>
+              </div></div>{{ else }}<p class="color-negative">Host unreachable</p>{{ end }}
+        - type: html
+          title: Infrastructure map
+          source: |
+            <svg class="wb-topo" viewBox="0 0 1100 640" xmlns="http://www.w3.org/2000/svg">
+              <text class="t-sub" x="1090" y="14" text-anchor="end">compute &amp; storage as built &middot; Oct 2026 (static: edit by hand when it changes)</text>
+
+              <!-- pve4 -->
+              <rect class="box" x="20" y="40" width="470" height="290"/>
+              <text class="t-title" x="255" y="62" text-anchor="middle">pve4 &middot; main node &middot; .60</text>
+              <text class="t-sub" x="255" y="78" text-anchor="middle">Proxmox VE &middot; 4 cores &middot; 32 GB &middot; 11 drives</text>
+              <rect class="box box-core" x="40" y="96" width="210" height="214"/>
+              <text class="t-title" x="145" y="118" text-anchor="middle">CT103 &middot; services &middot; .110</text>
+              <text class="t-sub" x="145" y="136" text-anchor="middle">Dockge &middot; Nginx Proxy Manager</text>
+              <text class="t-sub" x="145" y="152" text-anchor="middle">Glance + glance-admin</text>
+              <text class="t-sub" x="145" y="168" text-anchor="middle">Lidarr &middot; Radarr &middot; Sonarr &middot; Prowlarr</text>
+              <text class="t-sub" x="145" y="184" text-anchor="middle">SABnzbd &middot; slskd &middot; Seerr</text>
+              <text class="t-sub" x="145" y="200" text-anchor="middle">Navidrome &middot; Audiobookshelf</text>
+              <text class="t-sub" x="145" y="216" text-anchor="middle">RustyDisc &middot; Picard &middot; NOMAD tools</text>
+              <text class="t-sub" x="145" y="232" text-anchor="middle">BookStack &middot; Paperless &middot; Forgejo</text>
+              <text class="t-sub" x="145" y="248" text-anchor="middle">Vaultwarden &middot; SearXNG &middot; Termix</text>
+              <text class="t-tag" x="145" y="290" text-anchor="middle">4 cores &middot; 24 GB &middot; 115 GB disk</text>
+              <rect class="box box-core" x="270" y="96" width="200" height="110"/>
+              <text class="t-title" x="370" y="118" text-anchor="middle">CT104 &middot; jellyfin &middot; .111</text>
+              <text class="t-sub" x="370" y="138" text-anchor="middle">Jellyfin &middot; Dockge</text>
+              <text class="t-tag" x="370" y="186" text-anchor="middle">4 cores &middot; 8 GB &middot; 32 GB disk</text>
+
+              <!-- pve2 -->
+              <rect class="box" x="520" y="40" width="270" height="190"/>
+              <text class="t-title" x="655" y="62" text-anchor="middle">pve2 &middot; automation node &middot; .59</text>
+              <text class="t-sub" x="655" y="78" text-anchor="middle">Proxmox VE &middot; 4 cores &middot; 8 GB</text>
+              <rect class="box box-core" x="540" y="96" width="230" height="96"/>
+              <text class="t-title" x="655" y="118" text-anchor="middle">CT200 &middot; automation &middot; .112</text>
+              <text class="t-sub" x="655" y="138" text-anchor="middle">Home Assistant &middot; Frigate &middot; Dockge</text>
+              <text class="t-tag" x="655" y="178" text-anchor="middle">4 cores &middot; 6 GB &middot; 32 GB disk</text>
+              <text class="t-sub" x="655" y="214" text-anchor="middle">disk: 120 GB SSD (boot + root)</text>
+
+              <!-- PBS -->
+              <rect class="box" x="520" y="250" width="270" height="80"/>
+              <text class="t-title" x="655" y="274" text-anchor="middle">Proxmox Backup Server &middot; .250</text>
+              <text class="t-sub" x="655" y="294" text-anchor="middle">datastore pbs-store &middot; ~0.9 TB (NFS from pve4)</text>
+              <text class="t-sub" x="655" y="312" text-anchor="middle">host + container backups from the nodes</text>
+
+              <!-- devuan -->
+              <rect class="box" x="820" y="40" width="260" height="290"/>
+              <text class="t-title" x="950" y="62" text-anchor="middle">devuan &middot; physical &middot; .106</text>
+              <text class="t-sub" x="950" y="78" text-anchor="middle">Devuan 6 &middot; 2 cores &middot; 4 GB &middot; 4 drives</text>
+              <rect class="box box-core" x="840" y="96" width="220" height="130"/>
+              <text class="t-title" x="950" y="118" text-anchor="middle">Docker (Dockge)</text>
+              <text class="t-sub" x="950" y="138" text-anchor="middle">private containers (locked)</text>
+              <text class="t-sub" x="950" y="154" text-anchor="middle">Glance agent + lister</text>
+              <text class="t-tag" x="950" y="206" text-anchor="middle">data on the 233 GB root SSD</text>
+              <rect class="box" x="840" y="246" width="105" height="64"/>
+              <text class="t-title" x="892" y="268" text-anchor="middle">/srv/1tb</text>
+              <text class="t-sub" x="892" y="285" text-anchor="middle">btrfs, 2 &times; 1 TB</text>
+              <text class="t-tag" x="892" y="301" text-anchor="middle">private data</text>
+              <rect class="box" x="955" y="246" width="105" height="64"/>
+              <text class="t-title" x="1007" y="268" text-anchor="middle">/srv/4tb</text>
+              <text class="t-sub" x="1007" y="285" text-anchor="middle">4 TB ext4</text>
+              <text class="t-tag" x="1007" y="301" text-anchor="middle">recordings, NFS</text>
+
+              <!-- pve4 disks -->
+              <rect class="box" x="20" y="358" width="770" height="226"/>
+              <text class="t-title" x="36" y="378">pve4 disks</text>
+
+              <rect class="box box-core" x="36" y="386" width="118" height="62"/>
+              <text class="t-title" x="95" y="406" text-anchor="middle">Main20TB</text>
+              <text class="t-sub" x="95" y="422" text-anchor="middle">20 TB &middot; ext4</text>
+              <text class="t-tag" x="95" y="438" text-anchor="middle">media pool</text>
+              <rect class="box" x="162" y="386" width="118" height="62"/>
+              <text class="t-title" x="221" y="406" text-anchor="middle">wd-4tb</text>
+              <text class="t-sub" x="221" y="422" text-anchor="middle">4 TB &middot; ext4</text>
+              <text class="t-tag" x="221" y="438" text-anchor="middle">PVE dir + dumps</text>
+              <rect class="box" x="288" y="386" width="118" height="62"/>
+              <text class="t-title" x="347" y="406" text-anchor="middle">pbs-nfs</text>
+              <text class="t-sub" x="347" y="422" text-anchor="middle">1 TB &middot; ext4</text>
+              <text class="t-tag" x="347" y="438" text-anchor="middle">PBS datastore</text>
+              <rect class="box" x="414" y="386" width="118" height="62"/>
+              <text class="t-title" x="473" y="406" text-anchor="middle">OCZ SSD</text>
+              <text class="t-sub" x="473" y="422" text-anchor="middle">128 GB</text>
+              <text class="t-tag" x="473" y="438" text-anchor="middle">boot + root</text>
+              <rect class="box" x="540" y="386" width="118" height="62"/>
+              <text class="t-title" x="599" y="406" text-anchor="middle">CT240 SSD</text>
+              <text class="t-sub" x="599" y="422" text-anchor="middle">240 GB</text>
+              <text class="t-tag" x="599" y="438" text-anchor="middle">local-lvm (CTs)</text>
+              <rect class="box" x="666" y="386" width="118" height="62"/>
+              <text class="t-title" x="725" y="406" text-anchor="middle">USB stick</text>
+              <text class="t-sub" x="725" y="422" text-anchor="middle">32 GB &middot; exfat</text>
+              <text class="t-tag" x="725" y="438" text-anchor="middle">not in use</text>
+
+              <rect class="box" x="28" y="462" width="392" height="112"/>
+              <text class="t-sub" x="36" y="478">backup-20tb &middot; mergerfs &middot; nightly rsync of Main20TB</text>
+              <rect class="box" x="36" y="488" width="118" height="62"/>
+              <text class="t-title" x="95" y="508" text-anchor="middle">sdb1</text>
+              <text class="t-sub" x="95" y="524" text-anchor="middle">8 TB &middot; ext4</text>
+              <text class="t-tag" x="95" y="540" text-anchor="middle">pool member</text>
+              <rect class="box" x="162" y="488" width="118" height="62"/>
+              <text class="t-title" x="221" y="508" text-anchor="middle">sdc1</text>
+              <text class="t-sub" x="221" y="524" text-anchor="middle">10 TB &middot; ext4</text>
+              <text class="t-tag" x="221" y="540" text-anchor="middle">pool member</text>
+              <rect class="box" x="288" y="488" width="118" height="62"/>
+              <text class="t-title" x="347" y="508" text-anchor="middle">sdg1</text>
+              <text class="t-sub" x="347" y="524" text-anchor="middle">2 TB &middot; ext4</text>
+              <text class="t-tag" x="347" y="540" text-anchor="middle">pool member</text>
+
+              <rect class="box" x="432" y="462" width="262" height="112"/>
+              <text class="t-sub" x="440" y="478">misc &middot; mergerfs &middot; scratch, NFS export</text>
+              <rect class="box" x="440" y="488" width="118" height="62"/>
+              <text class="t-title" x="499" y="508" text-anchor="middle">st-500gb</text>
+              <text class="t-sub" x="499" y="524" text-anchor="middle">500 GB &middot; ext4</text>
+              <text class="t-tag" x="499" y="540" text-anchor="middle">pool member</text>
+              <rect class="box" x="566" y="488" width="118" height="62"/>
+              <text class="t-title" x="625" y="508" text-anchor="middle">hgst-1tb</text>
+              <text class="t-sub" x="625" y="524" text-anchor="middle">1 TB &middot; ext4</text>
+              <text class="t-tag" x="625" y="540" text-anchor="middle">pool member</text>
+
+              <!-- links -->
+              <path class="link link-fibre" d="M145 310 V386"/>
+              <path class="link link-fibre" d="M370 206 V340 H110 V386"/>
+              <path class="link link-standby" d="M60 448 V462"/>
+              <path class="link link-standby" d="M490 190 H520"/>
+              <path class="link link-vlan15" d="M655 230 V250"/>
+              <path class="link link-standby" d="M490 150 H505 V280 H520"/>
+              <path class="link link-acl" d="M820 150 H790"/>
+              <path class="link link-acl" d="M1007 310 V345 H221 V386"/>
+              <path class="link link-vlan15" d="M600 330 V372 H347 V386"/>
+
+              <!-- legend -->
+              <path class="link link-fibre" d="M20 608 H50"/><text class="t-sub" x="56" y="612">storage mount</text>
+              <path class="link link-standby" d="M170 608 H200"/><text class="t-sub" x="206" y="612">backup flow</text>
+              <path class="link link-vlan15" d="M310 608 H340"/><text class="t-sub" x="346" y="612">node &rarr; PBS</text>
+              <path class="link link-acl" d="M460 608 H490"/><text class="t-sub" x="496" y="612">Glance agent reads / NFS from devuan</text>
+            </svg>
+        - type: custom-api
+          title: Storage and backups
+          title-url: https://${HOST_PBS}:8007
+          cache: 1m
+          url: http://${HOST_SVC}:3005/api/infra/summary
+          template: |
+
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:1 1 22rem;min-width:0">
+                <div class="size-h6 color-subdue margin-bottom-5">SPACE IN USE</div>
+                {{ range .JSON.Array "nodes" }}{{ if eq (.String "name") "pve4" }}{{ range .Array "storage" }}<div class="flex justify-between size-h6"><span class="color-subdue">pve4 &middot; {{ .String "name" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>{{ end }}{{ end }}{{ end }}
+                {{ range .JSON.Array "hosts.devuan.disks" }}<div class="flex justify-between size-h6"><span class="color-subdue">devuan &middot; {{ .String "name" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>{{ end }}
+                {{ range .JSON.Array "hosts.services.disks" }}<div class="flex justify-between size-h6"><span class="color-subdue">services &middot; {{ .String "name" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>{{ end }}
+                {{ range .JSON.Array "pbs.datastores" }}<div class="flex justify-between size-h6"><span class="color-subdue">PBS &middot; {{ .String "store" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>{{ end }}
+              </div>
+              <div style="flex:2 1 34rem;min-width:0">
+                <div class="size-h6 color-subdue margin-bottom-5">EVERY PHYSICAL DISK</div>
+                <ul class="list list-gap-8 size-h6">
+                {{ range .JSON.Array "nodes" }}{{ $node := .String "name" }}
+                  {{ range .Array "disks" }}
+                  <li>
+                    <div class="flex justify-between gap-10">
+                      <span class="text-truncate"><span class="color-subdue">{{ $node }}</span> <span class="color-highlight">{{ .String "dev" }}</span> {{ .String "model" }}</span>
+                      <span class="shrink-0">{{ if ge (.Int "size_gb") 1000 }}{{ printf "%.1f" (div (.Float "size_gb") 1000.0) }} TB{{ else }}{{ .Int "size_gb" }} GB{{ end }} &middot; <span class="{{ if eq (.String "health") "PASSED" }}color-positive{{ else if eq (.String "health") "UNKNOWN" }}color-subdue{{ else }}color-negative{{ end }}">{{ .String "health" }}</span>{{ if .Exists "wear_left" }}{{ if gt (.Int "wear_left") 0 }} &middot; {{ .Int "wear_left" }}% life{{ end }}{{ end }}</span>
+                    </div>
+                    <div class="color-subdue text-truncate">{{ .String "mount" }}{{ if .String "role" }} &middot; {{ .String "role" }}{{ end }}</div>
+                  </li>
+                  {{ end }}
+                {{ end }}
+                {{ range .JSON.Array "hosts.devuan.disks" }}
+                  <li>
+                    <div class="flex justify-between gap-10"><span class="text-truncate"><span class="color-subdue">devuan</span> <span class="color-highlight">{{ .String "name" }}</span></span><span class="shrink-0">{{ if ge (.Int "total_gb") 1000 }}{{ printf "%.1f" (div (.Float "total_gb") 1000.0) }} TB{{ else }}{{ .Int "total_gb" }} GB{{ end }} &middot; {{ .Int "pct" }}% used</span></div>
+                    <div class="color-subdue text-truncate">{{ .String "mount" }} &middot; {{ .String "role" }}</div>
+                  </li>
+                {{ end }}
+                </ul>
+              </div>
+              <div style="flex:1 1 22rem;min-width:0">
+                <div class="size-h6 color-subdue margin-bottom-5">BACKUP COVERAGE (PBS)</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "nodes" }}
+                  <li class="flex justify-between gap-10"><span>host &middot; {{ .String "name" }}</span><span class="{{ if .Bool "backed_up" }}color-positive{{ else }}color-negative{{ end }}">{{ if .Bool "backed_up" }}{{ .Int "backup_h" }}h ago{{ else }}NO BACKUP{{ end }}</span></li>
+                  {{ range .Array "guests" }}
+                  <li class="flex justify-between gap-10"><span>{{ if eq (.String "kind") "lxc" }}CT{{ else }}VM{{ end }}{{ .Int "vmid" }} &middot; {{ .String "name" }}</span><span class="{{ if .Bool "backed_up" }}color-positive{{ else }}color-negative{{ end }}">{{ if .Bool "backed_up" }}{{ .Int "backup_h" }}h ago{{ else }}NO BACKUP{{ end }}</span></li>
+                  {{ end }}
+                {{ end }}
+                {{ range .JSON.Array "pbs.groups" }}{{ if .Bool "stale" }}
+                  <li class="flex justify-between gap-10 color-subdue"><span>PBS group {{ .String "type" }}/{{ .String "id" }}</span><span class="color-negative">last {{ div (.Int "age_h") 24 }}d ago (stale)</span></li>
+                {{ end }}{{ end }}
+                </ul>
+              </div>
+            </div>
+
+    - size: small
+      widgets:
+        - type: monitor
+          title: Hosts
+          cache: 1m
+          sites:
+            - { title: "pve4 (.60)",             url: "https://${HOST_PVE4}:8006", allow-insecure: true, icon: di:proxmox }
+            - { title: "pve2 (.59)",             url: "https://${HOST_PVE2}:8006", allow-insecure: true, icon: di:proxmox }
+            - { title: "PBS (.250)",             url: "https://${HOST_PBS}:8007",  allow-insecure: true, icon: di:proxmox-backup-server }
+            - { title: "services · Dockge",      url: "http://${HOST_SVC}:5001",    icon: di:dockge }
+            - { title: "jellyfin · Dockge",      url: "http://${HOST_JELLY}:5001",  icon: di:dockge }
+            - { title: "devuan · Dockge",        url: "http://${HOST_DEVUAN}:5001", icon: di:dockge }
+            - { title: "automation · Dockge",    url: "http://${HOST_AUTO}:5001",   icon: di:dockge }
+            - { title: "Home Assistant",         url: "http://${HOST_AUTO}:8123",   icon: di:home-assistant }

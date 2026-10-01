@@ -1,0 +1,400 @@
+- name: Downloads
+  slug: downloads
+  width: wide
+  columns:
+    - size: full
+      widgets:
+        - type: split-column
+          max-columns: 2
+          widgets:
+            - type: custom-api
+              title: SABnzbd
+              title-url: http://${HOST_SVC}:8085
+              cache: 30s
+              url: http://${HOST_SVC}:8085/api?mode=queue&output=json&apikey=${SABNZBD_KEY}&limit=8
+              subrequests:
+                history:
+                  url: http://${HOST_SVC}:8085/api?mode=history&output=json&apikey=${SABNZBD_KEY}&limit=6
+              template: |
+                {{ $q := .JSON }}
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 {{ if $q.Bool "queue.paused" }}color-negative{{ else }}color-highlight{{ end }}">{{ if $q.Bool "queue.paused" }}paused{{ else }}{{ $q.String "queue.speed" }}B/s{{ end }}</div><div class="size-h6">SPEED</div></div>
+                  <div><div class="size-h3 color-highlight">{{ $q.Int "queue.noofslots_total" }}</div><div class="size-h6">IN QUEUE</div></div>
+                  <div><div class="size-h3 color-highlight">{{ $q.String "queue.sizeleft" }}</div><div class="size-h6">REMAINING</div></div>
+                  <div><div class="size-h3 color-highlight">{{ $q.String "queue.timeleft" }}</div><div class="size-h6">ETA</div></div>
+                  <div><div class="size-h3 color-highlight">{{ $q.String "queue.diskspace1_norm" }}</div><div class="size-h6">FREE</div></div>
+                </div>
+                <ul class="list list-gap-8 size-h6 margin-bottom-10">
+                {{ range $q.Array "queue.slots" }}
+                  <li>
+                    <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "filename" }}</span><span class="color-subdue shrink-0">{{ .String "percentage" }}% &middot; {{ .String "sizeleft" }} &middot; {{ .String "status" }}</span></div>
+                    <div class="wb-progress"><div style="width:{{ .String "percentage" }}%"></div></div>
+                  </li>
+                {{ else }}
+                  <li class="color-subdue">Queue is empty</li>
+                {{ end }}
+                </ul>
+                <div class="size-h6 color-subdue margin-bottom-5">RECENT HISTORY</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range (.Subrequest "history").JSON.Array "history.slots" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate"><span class="{{ if eq (.String "status") "Completed" }}color-positive{{ else }}color-negative{{ end }}">&#9679;</span> {{ .String "name" }}</span><span class="color-subdue shrink-0">{{ .String "category" }} &middot; {{ .String "size" }}</span></li>
+                {{ end }}
+                </ul>
+
+            - type: custom-api
+              title: Seerr requests
+              title-url: http://${HOST_SVC}:5055/requests
+              cache: 2m
+              url: http://${HOST_SVC}:5055/api/v1/request/count
+              headers:
+                X-Api-Key: ${SEERR_KEY}
+              subrequests:
+                recent:
+                  url: http://${HOST_SVC}:5055/api/v1/request?take=8&sort=added&filter=all
+                  headers:
+                    X-Api-Key: ${SEERR_KEY}
+              template: |
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "pending") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "pending" }}</div><div class="size-h6">PENDING</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "processing" }}</div><div class="size-h6">PROCESSING</div></div>
+                  <div><div class="size-h3 color-positive">{{ .JSON.Int "available" }}</div><div class="size-h6">AVAILABLE</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "total" }}</div><div class="size-h6">TOTAL</div></div>
+                </div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range (.Subrequest "recent").JSON.Array "results" }}
+                  {{ $st := .Int "status" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate">{{ .String "type" }} &middot; {{ .String "requestedBy.displayName" }} &middot; {{ if eq $st 1 }}<span class="color-primary">pending</span>{{ else if eq $st 2 }}approved{{ else if eq $st 3 }}declined{{ else if eq $st 4 }}<span class="color-negative">failed</span>{{ else }}<span class="color-positive">completed</span>{{ end }}</span><span class="color-subdue shrink-0" {{ .String "createdAt" | parseTime "rfc3339" | toRelativeTime }}></span></li>
+                {{ else }}<li class="color-subdue">No requests yet</li>{{ end }}
+                </ul>
+
+        - type: custom-api
+          title: Radarr
+          title-url: http://${HOST_SVC}:7878
+          cache: 2m
+          url: http://${HOST_SVC}:7878/api/v3/queue?pageSize=8&includeMovie=true&includeUnknownMovieItems=true
+          headers:
+            X-Api-Key: ${RADARR_KEY}
+          options:
+            key: ${RADARR_KEY}
+          subrequests:
+            missing:
+              url: http://${HOST_SVC}:7878/api/v3/wanted/missing?pageSize=1&monitored=true
+              headers:
+                X-Api-Key: ${RADARR_KEY}
+          template: |
+            {{ $start := now | formatTime "2006-01-02" }}{{ $end := offsetNow "720h" | formatTime "2006-01-02" }}
+            {{ $cal := newRequest "http://${HOST_SVC}:7878/api/v3/calendar" | withParameter "start" $start | withParameter "end" $end | withHeader "X-Api-Key" (.Options.StringOr "key" "") | getResponse }}
+
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:0 0 24rem;max-width:100%;min-width:0">
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "totalRecords" }}</div><div class="size-h6">QUEUE</div></div>
+                  <div><div class="size-h3 color-highlight">{{ (.Subrequest "missing").JSON.Int "totalRecords" }}</div><div class="size-h6">MISSING</div></div>
+                </div>
+                <ul class="list list-gap-8 size-h6">
+                  {{ range .JSON.Array "records" }}
+                    {{ $left := 0.0 }}{{ if gt (.Float "size") 0.0 }}{{ $left = div (.Float "sizeleft") (.Float "size") }}{{ end }}
+                    <li>
+                      <div class="flex justify-between gap-10"><span class="text-truncate">{{ if .Exists "movie.title" }}{{ .String "movie.title" }}{{ else }}{{ .String "title" }}{{ end }}</span><span class="shrink-0 {{ if eq (.String "trackedDownloadState") "importFailed" }}color-negative{{ else }}color-subdue{{ end }}">{{ .String "trackedDownloadState" }}</span></div>
+                      <div class="wb-progress"><div style="width:{{ printf "%.0f" (mul (sub 1.0 $left) 100) }}%"></div></div>
+                    </li>
+                  {{ else }}<li class="color-subdue">Nothing downloading</li>{{ end }}
+                </ul>
+
+              </div>
+              <div class="grow" style="flex-basis:20rem;min-width:0">
+                <div class="size-h6 color-subdue margin-bottom-5">UPCOMING &middot; next 30 days</div>
+                {{ $items := $cal.JSON.Array "" }}
+                {{ if $items }}
+                <div class="wb-strip">
+                {{ range sortByString "digitalRelease" "asc" $items }}
+                  {{ $poster := "" }}{{ range .Array "images" }}{{ if eq (.String "coverType") "poster" }}{{ $poster = .String "remoteUrl" }}{{ end }}{{ end }}{{ $poster = replaceAll "/original/" "/w342/" $poster }}
+                  {{ $when := .String "digitalRelease" }}{{ if eq $when "" }}{{ $when = .String "physicalRelease" }}{{ end }}{{ if eq $when "" }}{{ $when = .String "inCinemas" }}{{ end }}
+                  <div class="wb-card">
+                    <a href="http://${HOST_SVC}:7878/movie/{{ .String "titleSlug" }}" target="_blank">
+                      <img src="{{ $poster }}" alt="" loading="lazy">
+                      <div class="wb-title">{{ .String "title" }}</div>
+                      <div class="wb-sub">{{ if ne $when "" }}{{ $when | parseTime "rfc3339" | formatTime "2 Jan" }}{{ end }}{{ if .Bool "hasFile" }} &middot; <span class="color-positive">have it</span>{{ end }}</div>
+                    </a>
+                  </div>
+                {{ end }}
+                </div>
+                {{ else }}<p class="color-subdue size-h6">Nothing scheduled</p>{{ end }}
+              </div>
+            </div>
+
+        - type: custom-api
+          title: Sonarr
+          title-url: http://${HOST_SVC}:8989
+          cache: 2m
+          url: http://${HOST_SVC}:8989/api/v3/queue?pageSize=8&includeSeries=true&includeEpisode=true&includeUnknownSeriesItems=true
+          headers:
+            X-Api-Key: ${SONARR_KEY}
+          options:
+            key: ${SONARR_KEY}
+          subrequests:
+            missing:
+              url: http://${HOST_SVC}:8989/api/v3/wanted/missing?pageSize=1&monitored=true
+              headers:
+                X-Api-Key: ${SONARR_KEY}
+          template: |
+            {{ $start := now | formatTime "2006-01-02" }}{{ $end := offsetNow "720h" | formatTime "2006-01-02" }}
+            {{ $cal := newRequest "http://${HOST_SVC}:8989/api/v3/calendar" | withParameter "start" $start | withParameter "end" $end | withParameter "includeSeries" "true" | withHeader "X-Api-Key" (.Options.StringOr "key" "") | getResponse }}
+
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:0 0 24rem;max-width:100%;min-width:0">
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "totalRecords" }}</div><div class="size-h6">QUEUE</div></div>
+                  <div><div class="size-h3 color-highlight">{{ (.Subrequest "missing").JSON.Int "totalRecords" }}</div><div class="size-h6">MISSING</div></div>
+                </div>
+                <ul class="list list-gap-8 size-h6">
+                  {{ range .JSON.Array "records" }}
+                    {{ $left := 0.0 }}{{ if gt (.Float "size") 0.0 }}{{ $left = div (.Float "sizeleft") (.Float "size") }}{{ end }}
+                    <li>
+                      <div class="flex justify-between gap-10"><span class="text-truncate">{{ if .Exists "series.title" }}{{ .String "series.title" }}{{ if .Exists "episode.seasonNumber" }} S{{ .Int "episode.seasonNumber" }}E{{ .Int "episode.episodeNumber" }}{{ end }}{{ else }}{{ .String "title" }}{{ end }}</span><span class="shrink-0 {{ if eq (.String "trackedDownloadState") "importFailed" }}color-negative{{ else }}color-subdue{{ end }}">{{ .String "trackedDownloadState" }}</span></div>
+                      <div class="wb-progress"><div style="width:{{ printf "%.0f" (mul (sub 1.0 $left) 100) }}%"></div></div>
+                    </li>
+                  {{ else }}<li class="color-subdue">Nothing downloading</li>{{ end }}
+                </ul>
+
+              </div>
+              <div class="grow" style="flex-basis:20rem;min-width:0">
+                <div class="size-h6 color-subdue margin-bottom-5">UPCOMING &middot; next 30 days</div>
+                {{ $items := $cal.JSON.Array "" }}
+                {{ if $items }}
+                <div class="wb-strip">
+                {{ range sortByString "airDateUtc" "asc" $items }}
+                  {{ $poster := "" }}{{ range .Array "series.images" }}{{ if eq (.String "coverType") "poster" }}{{ $poster = .String "remoteUrl" }}{{ end }}{{ end }}{{ $poster = replaceAll "/original/" "/w342/" $poster }}
+                  <div class="wb-card">
+                    <a href="http://${HOST_SVC}:8989/series/{{ .String "series.titleSlug" }}" target="_blank">
+                      <img src="{{ $poster }}" alt="" loading="lazy">
+                      <div class="wb-title">{{ .String "series.title" }}</div>
+                      <div class="wb-sub">S{{ .Int "seasonNumber" }}E{{ .Int "episodeNumber" }} &middot; {{ .String "airDateUtc" | parseTime "rfc3339" | formatTime "Mon 2 Jan" }}</div>
+                    </a>
+                  </div>
+                {{ end }}
+                </div>
+                {{ else }}<p class="color-subdue size-h6">Nothing scheduled</p>{{ end }}
+              </div>
+            </div>
+
+        - type: custom-api
+          title: Lidarr
+          title-url: http://${HOST_SVC}:8686
+          cache: 2m
+          url: http://${HOST_SVC}:8686/api/v1/queue?pageSize=8&includeArtist=true&includeAlbum=true
+          headers:
+            X-Api-Key: ${LIDARR_KEY}
+          options:
+            key: ${LIDARR_KEY}
+          subrequests:
+            missing:
+              url: http://${HOST_SVC}:8686/api/v1/wanted/missing?pageSize=1&monitored=true
+              headers:
+                X-Api-Key: ${LIDARR_KEY}
+            cutoff:
+              url: http://${HOST_SVC}:8686/api/v1/wanted/cutoff?pageSize=1&monitored=true
+              headers:
+                X-Api-Key: ${LIDARR_KEY}
+          template: |
+            {{ $cal := newRequest "http://${HOST_SVC}:3005/api/lidarr/calendar" | getResponse }}
+
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:0 0 24rem;max-width:100%;min-width:0">
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "totalRecords" }}</div><div class="size-h6">QUEUE</div></div>
+                  <div><div class="size-h3 color-highlight">{{ (.Subrequest "missing").JSON.Int "totalRecords" }}</div><div class="size-h6">MISSING</div></div>
+                  <div><div class="size-h3 color-highlight">{{ (.Subrequest "cutoff").JSON.Int "totalRecords" }}</div><div class="size-h6">UPGRADABLE</div></div>
+                </div>
+                <ul class="list list-gap-8 size-h6">
+                  {{ range .JSON.Array "records" }}
+                    {{ $left := 0.0 }}{{ if gt (.Float "size") 0.0 }}{{ $left = div (.Float "sizeleft") (.Float "size") }}{{ end }}
+                    <li>
+                      <div class="flex justify-between gap-10"><span class="text-truncate">{{ if .Exists "artist.artistName" }}{{ .String "artist.artistName" }} &ndash; {{ .String "album.title" }}{{ else }}{{ .String "title" }}{{ end }}</span><span class="shrink-0 {{ if eq (.String "trackedDownloadState") "importFailed" }}color-negative{{ else }}color-subdue{{ end }}">{{ .String "trackedDownloadState" }}</span></div>
+                      <div class="wb-progress"><div style="width:{{ printf "%.0f" (mul (sub 1.0 $left) 100) }}%"></div></div>
+                    </li>
+                  {{ else }}<li class="color-subdue">Nothing downloading</li>{{ end }}
+                </ul>
+                {{ $ld := newRequest "http://${HOST_SVC}:8690/api/status" | getResponse }}
+                <div class="size-h6 color-subdue margin-top-15 margin-bottom-5">WBS_LIDARRDONS</div>
+                <div class="wb-stats">
+                  <div><div class="size-h3 color-highlight">{{ $ld.JSON.Int "wanted" | formatNumber }}</div><div class="size-h6">WANTED</div></div>
+                  <div><div class="size-h3 color-highlight">{{ $ld.JSON.Int "cutoff" }}</div><div class="size-h6">UPGRADES</div></div>
+                  <div><div class="size-h3 {{ if gt ($ld.JSON.Int "stuck") 0 }}color-negative{{ else }}color-highlight{{ end }}">{{ $ld.JSON.Int "queue" }}<span class="color-subdue">/</span>{{ $ld.JSON.Int "stuck" }}</div><div class="size-h6">QUEUE / STUCK</div></div>
+                  <div><div class="size-h3 color-highlight">{{ $ld.JSON.Int "grabs24h" }}</div><div class="size-h6">GRABS 24H</div></div>
+                </div>
+                <ul class="list list-gap-4 margin-top-10 size-h6 color-subdue">
+                  <li>drip every {{ $ld.JSON.Int "drip_interval_minutes" }} min &middot; last {{ $ld.JSON.String "last_drip" }}</li>
+                  <li>janitor {{ if $ld.JSON.Bool "janitor_enabled" }}<span class="color-positive">on</span>{{ else }}<span class="color-negative">off</span>{{ end }} &middot; upgrades {{ if $ld.JSON.Bool "upgrade_enabled" }}<span class="color-positive">on</span>{{ else }}<span class="color-negative">off</span>{{ end }} &middot; path fixer {{ $ld.JSON.String "listener" }}</li>
+                </ul>
+              </div>
+              <div class="grow" style="flex-basis:20rem;min-width:0">
+                <div class="size-h6 color-subdue margin-bottom-5">UPCOMING &middot; next 30 days</div>
+                {{ $items := $cal.JSON.Array "" }}
+                {{ if $items }}
+                <div class="wb-strip">
+                {{ range sortByString "releaseDate" "asc" $items }}
+                  {{ $fallback := "" }}{{ range .Array "images" }}{{ if eq (.String "coverType") "cover" }}{{ $fallback = .String "remoteUrl" }}{{ end }}{{ end }}
+                  <div class="wb-card square">
+                    <a href="http://${HOST_SVC}:8686/artist/{{ .String "artist.foreignArtistId" }}" target="_blank">
+                      <img src="https://coverartarchive.org/release-group/{{ .String "foreignAlbumId" }}/front-250" onerror="this.onerror=null;this.src='{{ $fallback }}'" alt="" loading="lazy">
+                      <div class="wb-title">{{ .String "title" }}</div>
+                      <div class="wb-sub">{{ .String "artist.artistName" }} &middot; {{ .String "releaseDate" | parseTime "rfc3339" | formatTime "2 Jan" }}</div>
+                    </a>
+                  </div>
+                {{ end }}
+                </div>
+                {{ else }}<p class="color-subdue size-h6">Nothing scheduled</p>{{ end }}
+              </div>
+            </div>
+
+        - type: custom-api
+          title: Private A
+          title-url: http://${HOST_DEVUAN}:6969
+          css-class: wb-restricted
+          cache: 2m
+          url: http://${HOST_DEVUAN}:6969/api/v3/queue?pageSize=8&includeSeries=true&includeEpisode=true&includeUnknownSeriesItems=true
+          headers:
+            X-Api-Key: ${PRIVA_KEY}
+          options:
+            key: ${PRIVA_KEY}
+          subrequests:
+            missing:
+              url: http://${HOST_DEVUAN}:6969/api/v3/wanted/missing?pageSize=1&monitored=true
+              headers:
+                X-Api-Key: ${PRIVA_KEY}
+          template: |
+            {{ $start := now | formatTime "2006-01-02" }}{{ $end := offsetNow "720h" | formatTime "2006-01-02" }}
+            {{ $cal := newRequest "http://${HOST_DEVUAN}:6969/api/v3/calendar" | withParameter "start" $start | withParameter "end" $end | withParameter "includeSeries" "true" | withHeader "X-Api-Key" (.Options.StringOr "key" "") | getResponse }}
+
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:0 0 24rem;max-width:100%;min-width:0">
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "totalRecords" }}</div><div class="size-h6">QUEUE</div></div>
+                  <div><div class="size-h3 color-highlight">{{ (.Subrequest "missing").JSON.Int "totalRecords" }}</div><div class="size-h6">MISSING</div></div>
+                </div>
+                <ul class="list list-gap-8 size-h6">
+                  {{ range .JSON.Array "records" }}
+                    {{ $left := 0.0 }}{{ if gt (.Float "size") 0.0 }}{{ $left = div (.Float "sizeleft") (.Float "size") }}{{ end }}
+                    <li>
+                      <div class="flex justify-between gap-10"><span class="text-truncate">{{ if .Exists "series.title" }}{{ .String "series.title" }}{{ if .Exists "episode.seasonNumber" }} S{{ .Int "episode.seasonNumber" }}E{{ .Int "episode.episodeNumber" }}{{ end }}{{ else }}{{ .String "title" }}{{ end }}</span><span class="shrink-0 {{ if eq (.String "trackedDownloadState") "importFailed" }}color-negative{{ else }}color-subdue{{ end }}">{{ .String "trackedDownloadState" }}</span></div>
+                      <div class="wb-progress"><div style="width:{{ printf "%.0f" (mul (sub 1.0 $left) 100) }}%"></div></div>
+                    </li>
+                  {{ else }}<li class="color-subdue">Nothing downloading</li>{{ end }}
+                </ul>
+
+              </div>
+              <div class="grow" style="flex-basis:20rem;min-width:0">
+                <div class="size-h6 color-subdue margin-bottom-5">UPCOMING &middot; next 30 days</div>
+                {{ $items := $cal.JSON.Array "" }}
+                {{ if $items }}
+                <div class="wb-strip">
+                {{ range sortByString "airDateUtc" "asc" $items }}
+                  {{ $poster := "" }}{{ range .Array "series.images" }}{{ if eq (.String "coverType") "poster" }}{{ $poster = .String "remoteUrl" }}{{ end }}{{ end }}{{ $poster = replaceAll "/original/" "/w342/" $poster }}
+                  <div class="wb-card">
+                    <a href="http://${HOST_DEVUAN}:6969/series/{{ .String "series.titleSlug" }}" target="_blank">
+                      <img data-src="{{ $poster }}" alt="" loading="lazy">
+                      <div class="wb-title">{{ .String "series.title" }}</div>
+                      <div class="wb-sub">S{{ .Int "seasonNumber" }}E{{ .Int "episodeNumber" }} &middot; {{ .String "airDateUtc" | parseTime "rfc3339" | formatTime "Mon 2 Jan" }}</div>
+                    </a>
+                  </div>
+                {{ end }}
+                </div>
+                {{ else }}<p class="color-subdue size-h6">Nothing scheduled</p>{{ end }}
+              </div>
+            </div>
+
+        - type: custom-api
+          title: SABnzbd (devuan)
+          title-url: http://${HOST_DEVUAN}:8085
+          css-class: wb-restricted
+          cache: 30s
+          url: http://${HOST_DEVUAN}:8085/api?mode=queue&output=json&apikey=${DEVUAN_SAB_KEY}&limit=8
+          subrequests:
+            history:
+              url: http://${HOST_DEVUAN}:8085/api?mode=history&output=json&apikey=${DEVUAN_SAB_KEY}&limit=6
+          template: |
+            {{ $q := .JSON }}
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 {{ if $q.Bool "queue.paused" }}color-negative{{ else }}color-highlight{{ end }}">{{ if $q.Bool "queue.paused" }}paused{{ else }}{{ $q.String "queue.speed" }}B/s{{ end }}</div><div class="size-h6">SPEED</div></div>
+              <div><div class="size-h3 color-highlight">{{ $q.Int "queue.noofslots_total" }}</div><div class="size-h6">IN QUEUE</div></div>
+              <div><div class="size-h3 color-highlight">{{ $q.String "queue.sizeleft" }}</div><div class="size-h6">REMAINING</div></div>
+              <div><div class="size-h3 color-highlight">{{ $q.String "queue.timeleft" }}</div><div class="size-h6">ETA</div></div>
+              <div><div class="size-h3 color-highlight">{{ $q.String "queue.diskspace1_norm" }}</div><div class="size-h6">FREE</div></div>
+            </div>
+            <ul class="list list-gap-8 size-h6 margin-bottom-10">
+            {{ range $q.Array "queue.slots" }}
+              <li>
+                <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "filename" }}</span><span class="color-subdue shrink-0">{{ .String "percentage" }}% &middot; {{ .String "sizeleft" }} &middot; {{ .String "status" }}</span></div>
+                <div class="wb-progress"><div style="width:{{ .String "percentage" }}%"></div></div>
+              </li>
+            {{ else }}
+              <li class="color-subdue">Queue is empty</li>
+            {{ end }}
+            </ul>
+            <div class="size-h6 color-subdue margin-bottom-5">RECENT HISTORY</div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range (.Subrequest "history").JSON.Array "history.slots" }}
+              <li class="flex justify-between gap-10"><span class="text-truncate"><span class="{{ if eq (.String "status") "Completed" }}color-positive{{ else }}color-negative{{ end }}">&#9679;</span> {{ .String "name" }}</span><span class="color-subdue shrink-0">{{ .String "category" }} &middot; {{ .String "size" }}</span></li>
+            {{ end }}
+            </ul>
+
+    - size: small
+      widgets:
+        - type: custom-api
+          title: Soulseek (slskd)
+          title-url: http://${HOST_SVC}:5030/
+          cache: 30s
+          url: http://${HOST_SVC}:8095/integrations/api/slskd/
+          template: |
+            <div class="flex justify-between items-center margin-bottom-10">
+              <div>Soulseek <span class="{{ if .JSON.Bool "connected" }}color-positive{{ else }}color-negative{{ end }}">{{ if .JSON.Bool "connected" }}connected{{ else }}offline{{ end }}</span></div>
+              <div class="size-h6 color-subdue">v{{ .JSON.String "version" }}</div>
+            </div>
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 color-positive">{{ .JSON.Int "counts.downloading" }}</div><div class="size-h6">DOWNLOADING</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "counts.queued" }}</div><div class="size-h6">QUEUED</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "counts.completed" }}</div><div class="size-h6">DONE</div></div>
+              <div><div class="size-h3 {{ if gt (.JSON.Int "counts.failed") 0 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "counts.failed" }}</div><div class="size-h6">FAILED</div></div>
+            </div>
+            <ul class="list list-gap-8 size-h6">
+            {{ range .JSON.Array "active" }}
+              <li>
+                <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "label" }}</span><span class="color-subdue shrink-0">{{ .Int "percent" }}%{{ with .String "speed" }} &middot; {{ . }}{{ end }}</span></div>
+                <div class="wb-progress"><div style="width:{{ .Int "percent" }}%"></div></div>
+              </li>
+            {{ else }}
+              <li class="color-subdue">Nothing in flight</li>
+            {{ end }}
+            </ul>
+
+        - type: custom-api
+          title: Prowlarr
+          title-url: http://${HOST_SVC}:9696/
+          cache: 5m
+          url: http://${HOST_SVC}:9696/api/v1/indexer
+          headers:
+            X-Api-Key: ${PROWLARR_KEY}
+          subrequests:
+            health:
+              url: http://${HOST_SVC}:9696/api/v1/health
+              headers:
+                X-Api-Key: ${PROWLARR_KEY}
+            failing:
+              url: http://${HOST_SVC}:9696/api/v1/indexerstatus
+              headers:
+                X-Api-Key: ${PROWLARR_KEY}
+          template: |
+            {{ $all := .JSON.Array "" }}{{ $on := 0 }}
+            {{ range $all }}{{ if .Bool "enable" }}{{ $on = add $on 1 }}{{ end }}{{ end }}
+            {{ $fail := len ((.Subrequest "failing").JSON.Array "") }}
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 color-highlight">{{ len $all }}</div><div class="size-h6">INDEXERS</div></div>
+              <div><div class="size-h3 color-highlight">{{ $on }}</div><div class="size-h6">ENABLED</div></div>
+              <div><div class="size-h3 {{ if gt $fail 0 }}color-negative{{ else }}color-positive{{ end }}">{{ $fail }}</div><div class="size-h6">FAILING</div></div>
+            </div>
+            <ul class="list list-gap-4 size-h6">
+            {{ range (.Subrequest "health").JSON.Array "" }}
+              <li class="{{ if eq (.String "type") "error" }}color-negative{{ else }}color-subdue{{ end }}">{{ .String "type" }} &middot; {{ .String "message" }}</li>
+            {{ else }}<li class="color-positive">No health issues</li>{{ end }}
+            </ul>

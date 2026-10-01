@@ -1,0 +1,16 @@
+# Glance lister for the services LXC: read-only container list (names, state, stack; never env vars). Token-protected, LAN-only.
+# Remove with: docker compose down
+services:
+  glance-lister:
+    build: ./lister
+    image: glance-lister:local
+    container_name: glance-lister
+    environment:
+      TOKEN: ${AGENT_TOKEN}
+      HOST_LABEL: ${HOST_LABEL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "27974:27974"
+    mem_limit: 64m
+    restart: unless-stopped

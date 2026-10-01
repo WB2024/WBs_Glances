@@ -1,0 +1,52 @@
+# glance-admin: companion service for Glance (notes, to-do, cross-tab find index, Lidarr calendar cache; later bookmarks / channels).
+# Source: /opt/glance-admin   State: /opt/glance/data (plain JSON, included in Glance backups)
+# Only the keys it needs are passed in (LIDARR, NAVIDROME, ABS) (from /opt/stacks/glance-admin/.env, mode 600) - not the whole Glance env.
+services:
+  glance-admin:
+    build: /opt/glance-admin
+    image: glance-admin:local
+    container_name: glance-admin
+    ports:
+      - 3005:3005
+    environment:
+      - TZ=Europe/London
+      - STATE_DIR=/state
+      - GLANCE_URL=http://host.docker.internal:3002
+      - LIDARR_URL=http://host.docker.internal:8686
+      - LIDARR_KEY=${LIDARR_KEY}
+      - NAVIDROME_URL=http://host.docker.internal:4534
+      - NAVIDROME_USER=${NAVIDROME_USER}
+      - NAVIDROME_TOKEN=${NAVIDROME_TOKEN}
+      - NAVIDROME_SALT=${NAVIDROME_SALT}
+      - ABS_URL=http://host.docker.internal:13378
+      - ABS_KEY=${ABS_KEY}
+      - ABS_RESTRICTED=${ABS_RESTRICTED:-Private}
+      - PRIVB_URL=http://192.168.1.106:9999
+      - PRIVB_KEY=${PRIVB_KEY}
+      - IMMICH_URL=${IMMICH_URL}
+      - IMMICH_KEY=${IMMICH_KEY}
+      - PROXMOX_USER=${PROXMOX_USER}
+      - PROXMOX_PASSWORD=${PROXMOX_PASSWORD}
+      - PBS_PASSWORD=${PBS_PASSWORD}
+      - TOKEN_SERVICES=${AGENT_TOKEN_SVC}
+      - TOKEN_JELLYFIN=${AGENT_TOKEN_JELLY}
+      - TOKEN_DEVUAN=${AGENT_TOKEN_DEVUAN}
+      - TAILSCALE_OAUTH_ID=${TAILSCALE_OAUTH_ID}
+      - TAILSCALE_OAUTH_SECRET=${TAILSCALE_OAUTH_SECRET}
+      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN}
+      - FORGEJO_TOKEN=${FORGEJO_TOKEN}
+      - BOOKSTACK_TOKEN=${BOOKSTACK_TOKEN}
+      - BOOKSTACK_HIDE_BOOKS=${BOOKSTACK_HIDE_BOOKS:-}
+      - SVC_HOST=192.168.1.110
+      - NPM_URL=http://host.docker.internal:81
+      - NPM_USER=${NPM_USER}
+      - NPM_PASS=${NPM_PASS}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /opt/glance/data:/state
+      - /opt/glance/config/data:/cfgdata       # the only part of Glance's config this service may write (generated page files)
+      - /opt/glance/assets/favicons:/favicons  # cached site icons for bookmarks (served by Glance as /assets/favicons/)
+    cpus: 0.5
+    mem_limit: 128m
+    restart: unless-stopped

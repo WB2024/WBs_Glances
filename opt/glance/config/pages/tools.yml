@@ -1,0 +1,165 @@
+- name: Tools
+  slug: tools
+  width: wide
+  columns:
+    - size: full
+      widgets:
+        - type: custom-api
+          title: RustyDisc
+          title-url: http://${HOST_SVC}:8087
+          cache: 30s
+          url: http://${HOST_SVC}:8087/api/library
+          subrequests:
+            jobs:
+              url: http://${HOST_SVC}:8087/api/jobs
+            status:
+              url: http://${HOST_SVC}:8087/api/status
+            sticks:
+              url: http://${HOST_SVC}:8087/api/stick/targets
+          template: |
+            {{ $lib := .JSON.Array "entries" }}
+            {{ $jobs := (.Subrequest "jobs").JSON.Array "" }}
+            {{ $tracks := 0 }}{{ $bytes := 0.0 }}{{ $ar := 0 }}
+            {{ range $lib }}
+              {{ $tracks = add $tracks (.Int "audio_files") }}
+              {{ $bytes = add $bytes (.Float "total_bytes") }}
+              {{ if and (.Bool "accuraterip.found") (eq (.Int "accuraterip.verified") (.Int "accuraterip.total")) }}{{ $ar = add $ar 1 }}{{ end }}
+            {{ end }}
+            <div class="flex justify-between items-center margin-bottom-10">
+              <div>Drive <span class="color-subdue">{{ (.Subrequest "status").JSON.String "default_device" }}</span></div>
+              <div class="size-h6 color-subdue">v{{ (.Subrequest "status").JSON.String "version" }}</div>
+            </div>
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 color-highlight">{{ len $lib }}</div><div class="size-h6">ALBUMS</div></div>
+              <div><div class="size-h3 color-highlight">{{ $tracks | formatNumber }}</div><div class="size-h6">TRACKS</div></div>
+              <div><div class="size-h3 color-highlight">{{ printf "%.1f" (div $bytes 1073741824.0) }}<span class="size-h6"> GB</span></div><div class="size-h6">SIZE</div></div>
+              <div><div class="size-h3 color-positive">{{ $ar }}</div><div class="size-h6">AR ✓</div></div>
+            </div>
+            <ul class="list list-gap-8 size-h6">
+            {{ $running := 0 }}
+            {{ range $jobs }}
+              {{ if eq (.String "status") "running" }}
+              {{ $running = add $running 1 }}
+              <li>
+                <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "title" }}</span><span class="color-primary shrink-0">{{ printf "%.0f" (.Float "pct") }}%</span></div>
+                <div class="color-subdue text-truncate">{{ .String "step" }}</div>
+                <div class="wb-progress"><div style="width:{{ printf "%.0f" (.Float "pct") }}%"></div></div>
+              </li>
+              {{ end }}
+            {{ end }}
+            {{ if eq $running 0 }}<li class="color-subdue">Idle · {{ len ((.Subrequest "sticks").JSON.Array "targets") }} stick(s) connected</li>{{ end }}
+            </ul>
+
+        - type: split-column
+          max-columns: 3
+          widgets:
+            - type: custom-api
+              title: Paperless-ngx
+              title-url: http://paperless.wbhomelab
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "paperless.up" }}
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "paperless.docs" | formatNumber }}</div><div class="size-h6">DOCUMENTS</div></div>
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "paperless.inbox") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "paperless.inbox" }}</div><div class="size-h6">IN INBOX</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "paperless.tags" }}</div><div class="size-h6">TAGS</div></div>
+                </div>
+                <ul class="list list-gap-4 size-h6">
+                  <li class="flex justify-between gap-10"><span class="color-subdue">version</span><span>{{ .JSON.String "paperless.version" }}</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">database</span><span class="{{ if .JSON.Bool "paperless.db_ok" }}color-positive{{ else }}color-negative{{ end }}">{{ if .JSON.Bool "paperless.db_ok" }}OK{{ else }}problem{{ end }}</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">storage free</span><span>{{ .JSON.Float "paperless.free_tb" }} of {{ .JSON.Float "paperless.total_tb" }} TB</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">last document added</span><span>{{ if gt (.JSON.Int "paperless.last_added_h") 48 }}{{ div (.JSON.Int "paperless.last_added_h") 24 }}d{{ else }}{{ .JSON.Int "paperless.last_added_h" }}h{{ end }} ago</span></li>
+                </ul>
+                {{ else }}<p class="color-subdue">Paperless is not responding.</p>{{ end }}
+
+
+            - type: custom-api
+              title: Forgejo
+              title-url: http://forgejo.wbhomelab
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "forgejo.up" }}
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "forgejo.repos" }}</div><div class="size-h6">REPOSITORIES</div></div>
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "forgejo.open_issues") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "forgejo.open_issues" }}</div><div class="size-h6">OPEN ISSUES</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.String "forgejo.version" }}</div><div class="size-h6">VERSION</div></div>
+                </div>
+                <div class="size-h6 color-subdue margin-bottom-5">RECENTLY UPDATED</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "forgejo.recent" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate">{{ .String "name" }}{{ if .Bool "private" }} <span class="color-subdue">private</span>{{ end }}</span><span class="color-subdue shrink-0">{{ if gt (.Int "age_h") 48 }}{{ div (.Int "age_h") 24 }}d{{ else }}{{ .Int "age_h" }}h{{ end }} ago</span></li>
+                {{ end }}
+                </ul>
+                {{ else }}<p class="color-subdue">Forgejo is not responding.</p>{{ end }}
+
+
+            - type: custom-api
+              title: BookStack
+              title-url: http://bookstack.wbhomelab
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "bookstack.up" }}
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "bookstack.books" }}</div><div class="size-h6">BOOKS</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "bookstack.pages" | formatNumber }}</div><div class="size-h6">PAGES</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "bookstack.chapters" }}</div><div class="size-h6">CHAPTERS</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "bookstack.shelves" }}</div><div class="size-h6">SHELVES</div></div>
+                </div>
+                <div class="size-h6 color-subdue margin-bottom-5">RECENTLY UPDATED</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "bookstack.recent" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate">{{ .String "name" }} <span class="color-subdue">&middot; {{ .String "book" }}</span></span><span class="color-subdue shrink-0">{{ if gt (.Int "age_h") 48 }}{{ div (.Int "age_h") 24 }}d{{ else }}{{ .Int "age_h" }}h{{ end }} ago</span></li>
+                {{ end }}
+                </ul>
+                {{ else }}<p class="color-subdue">BookStack is not responding.</p>{{ end }}
+
+
+        - type: custom-api
+          title: Other tools
+          title-url: http://${HOST_SVC}:5001
+          cache: 2m
+          url: http://${HOST_SVC}:3005/api/tools/summary
+          template: |
+
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 color-positive">{{ .JSON.Int "up" }}</div><div class="size-h6">RESPONDING</div></div>
+              <div><div class="size-h3 {{ if gt (.JSON.Int "down") 0 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "down" }}</div><div class="size-h6">DOWN</div></div>
+            </div>
+            {{ $g := "" }}
+            {{ range .JSON.Array "tiles" }}
+              {{ if ne (.String "group") $g }}{{ if ne $g "" }}</div>{{ end }}<div class="size-h6 color-subdue margin-top-10 margin-bottom-5">{{ .String "group" }}</div><div class="wb-tiles">{{ $g = .String "group" }}{{ end }}
+              <div class="wb-tile{{ if not (.Bool "up") }} wb-tile-bad{{ end }}">
+                <span class="{{ if not (.Bool "up") }}color-negative{{ else if .Bool "warn" }}color-primary{{ else }}color-positive{{ end }}">&#9679;</span>
+                <div class="wb-tile-main">
+                  <div class="text-truncate"><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a></div>
+                  <div class="size-h6 color-subdue text-truncate">{{ .String "detail" }}</div>
+                </div>
+              </div>
+            {{ end }}
+            </div>
+
+
+    - size: small
+      widgets:
+        - type: custom-api
+          title: Latest releases
+          title-url: https://github.com
+          cache: 1h
+          url: http://${HOST_SVC}:3005/api/releases/summary
+          template: |
+
+            {{ range .JSON.Array "groups" }}
+              <div class="size-h6 color-subdue margin-top-10 margin-bottom-5">{{ .String "title" }}</div>
+              <ul class="list list-gap-4 size-h6">
+              {{ range .Array "items" }}
+                <li class="flex justify-between gap-10"><a class="color-highlight text-truncate" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a><span class="shrink-0 {{ if .Bool "ok" }}{{ if and (gt (.Int "age_h") 0) (lt (.Int "age_h") 336) }}color-primary{{ else }}color-subdue{{ end }}{{ else }}color-negative{{ end }}">{{ if .Bool "ok" }}{{ .String "tag" }}{{ if gt (.Int "age_h") 0 }} &middot; {{ if gt (.Int "age_h") 48 }}{{ div (.Int "age_h") 24 }}d{{ else }}{{ .Int "age_h" }}h{{ end }}{{ end }}{{ else }}unavailable{{ end }}</span></li>
+              {{ end }}
+              </ul>
+            {{ end }}
+
