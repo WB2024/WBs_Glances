@@ -252,6 +252,7 @@ FORGEJO_TOKEN=
 AGENT_TOKEN_SVC=
 AGENT_TOKEN_JELLY=
 AGENT_TOKEN_DEVUAN=
+AGENT_TOKEN_PVE4=              # optional: pve4 disk reporter
 """
 
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")

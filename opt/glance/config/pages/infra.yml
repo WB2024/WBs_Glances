@@ -386,7 +386,7 @@
                   <li>
                     <div class="flex justify-between gap-10">
                       <span class="text-truncate"><span class="color-subdue">{{ $node }}</span> <span class="color-highlight">{{ .String "dev" }}</span> {{ .String "model" }}</span>
-                      <span class="shrink-0">{{ if ge (.Int "size_gb") 1000 }}{{ printf "%.1f" (div (.Float "size_gb") 1000.0) }} TB{{ else }}{{ .Int "size_gb" }} GB{{ end }} &middot; <span class="{{ if eq (.String "health") "PASSED" }}color-positive{{ else if eq (.String "health") "UNKNOWN" }}color-subdue{{ else }}color-negative{{ end }}">{{ .String "health" }}</span>{{ if .Exists "wear_left" }}{{ if gt (.Int "wear_left") 0 }} &middot; {{ .Int "wear_left" }}% life{{ end }}{{ end }}</span>
+                      <span class="shrink-0">{{ if ge (.Int "size_gb") 1000 }}{{ printf "%.1f" (div (.Float "size_gb") 1000.0) }} TB{{ else }}{{ .Int "size_gb" }} GB{{ end }} &middot; <span class="{{ if eq (.String "health") "PASSED" }}color-positive{{ else if eq (.String "health") "UNKNOWN" }}color-subdue{{ else }}color-negative{{ end }}">{{ .String "health" }}</span>{{ if gt (.Int "pct") 0 }} &middot; {{ .Int "pct" }}% used{{ end }}{{ if .Exists "wear_left" }}{{ if gt (.Int "wear_left") 0 }} &middot; {{ .Int "wear_left" }}% life{{ end }}{{ end }}</span>
                     </div>
                     <div class="color-subdue text-truncate">{{ .String "mount" }}{{ if .String "role" }} &middot; {{ .String "role" }}{{ end }}</div>
                   </li>

@@ -172,6 +172,8 @@ What to put in `.env` (see `opt/glance/.env.example` for every name):
 | Lock | `GLANCE_PIN` |
 | Agents | `AGENT_TOKEN_SVC`, `AGENT_TOKEN_JELLY`, `AGENT_TOKEN_DEVUAN` (any long random strings; the same value goes on the matching host) |
 
+Optional: `scripts/proxmox-host/install-glance-disks.sh` (run on a Proxmox host, with `TOKEN` set to `AGENT_TOKEN_PVE4`) adds per-mount space usage to the Infra disk list. It serves only device, mount point, filesystem and sizes.
+
 Use read-only keys wherever the service lets you, and give the Proxmox token no more than `PVEAuditor`.
 
 ### Other hosts (agent + lister)

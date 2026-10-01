@@ -88,6 +88,21 @@ def pve_storage(node, ip, auth):
              "pct": _pct(s.get("used", 0), s.get("total", 0))} for s in rows if s.get("active") and s.get("total")]
 
 
+def attach_usage(n):
+    """Per-mount usage from the read-only glance-disks service on the Proxmox host (optional: TOKEN_<NODE> + port 27975)."""
+    tok = _env("TOKEN_" + n["name"].upper())
+    if not tok:
+        return
+    try:
+        mounts = {m["mount"]: m for m in _get("http://%s:27975/disks" % n["ip"], {"Authorization": "Bearer " + tok})["mounts"]}
+    except Exception:
+        return
+    for d in n["disks"]:
+        m = mounts.get(d.get("mount"))
+        if m:
+            d.update(used_gb=round(m["used_gb"]), total_gb=round(m["size_gb"]), pct=m["pct"])
+
+
 def pve_node(name, ip):
     auth = {"Authorization": "PVEAPIToken=%s=%s" % (_env("PROXMOX_USER"), _env("PROXMOX_PASSWORD"))}
     base = "https://%s:8006/api2/json/nodes/%s" % (ip, name)
@@ -117,6 +132,7 @@ def pve_node(name, ip):
             pass
     n["guests"].sort(key=lambda g: g["vmid"])
     n["disks"] = pve_disks(name, ip, auth)
+    attach_usage(n)
     n["storage"] = pve_storage(name, ip, auth) if name == "pve4" else []
     try:
         now = time.time()
