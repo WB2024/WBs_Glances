@@ -237,7 +237,7 @@ diagram = """        - type: html
               <rect class="box box-core" x="540" y="96" width="230" height="96"/>
               <text class="t-title" x="655" y="118" text-anchor="middle">CT200 &middot; automation &middot; .112</text>
               <text class="t-sub" x="655" y="138" text-anchor="middle">Home Assistant &middot; Frigate &middot; Dockge</text>
-              <text class="t-tag" x="655" y="178" text-anchor="middle">4 cores &middot; 6 GB &middot; 32 GB disk</text>
+              <text class="t-tag" x="655" y="178" text-anchor="middle">4 cores &middot; 7 GB &middot; 32 GB disk</text>
               <text class="t-sub" x="655" y="214" text-anchor="middle">disk: 120 GB SSD (boot + root)</text>
 
               <!-- PBS -->
@@ -359,6 +359,7 @@ for w in (node_card("pve4", "${HOST_PVE4}"), node_card("pve2", "${HOST_PVE2}"),
     page += block(w, 12) + "\n"
 page += host_row("services", "Dockge · services", "http://${HOST_SVC}:5001", "CPU", "26rem")
 page += host_row("jellyfin", "Dockge · jellyfin", "http://${HOST_JELLY}:5001", "CPU", "16rem")
+page += host_row("automation", "Dockge · automation", "http://${HOST_AUTO}:5001", "CPU", "16rem")
 page += host_row("devuan", "Dockge · devuan", "http://${HOST_DEVUAN}:5001", "LOAD", "18rem", stacks=False)
 page += stacks_widget("devuan", "Dockge · devuan (containers)", "http://${HOST_DEVUAN}:5001", "18rem")
 page += diagram

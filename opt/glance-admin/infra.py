@@ -217,6 +217,7 @@ def build():
     hosts = {}
     spec = [("services", _env("SVC_HOST", "192.168.1.110"), _env("TOKEN_SERVICES"), 103),
             ("jellyfin", _env("JELLY_HOST", "192.168.1.111"), _env("TOKEN_JELLYFIN"), 104),
+            ("automation", _env("AUTO_HOST", "192.168.1.112"), _env("TOKEN_AUTOMATION"), 200),
             ("devuan", _env("DEVUAN_HOST", "192.168.1.106"), _env("TOKEN_DEVUAN"), None)]
     for label, ip, token, vmid in spec:
         h = docker_host(label, ip, token) if token else {"label": label, "ip": ip, "ok": False, "stacks": [], "disks": [], "err": "no token"}

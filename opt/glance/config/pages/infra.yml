@@ -186,6 +186,44 @@
             {{ else }}<p class="color-negative">Host unreachable: {{ .JSON.String "hosts.jellyfin.err" }}</p>{{ end }}
 
         - type: custom-api
+          title: Dockge · automation
+          title-url: http://${HOST_AUTO}:5001
+          cache: 1m
+          url: http://${HOST_SVC}:3005/api/infra/summary
+          template: |
+
+            {{ if .JSON.Bool "hosts.automation.ok" }}
+            <div class="flex gap-25" style="flex-wrap:wrap">
+              <div style="flex:0 0 24rem;max-width:100%;min-width:0">
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "hosts.automation.cpu_pct") 80 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "hosts.automation.cpu_pct" }}%</div><div class="size-h6">CPU</div></div>
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "hosts.automation.mem_pct") 90 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "hosts.automation.mem_pct" }}%</div><div class="size-h6">RAM &middot; {{ printf "%.1f" (div (.JSON.Float "hosts.automation.mem_total_mb") 1024.0) }}G</div></div>
+                  {{ if gt (.JSON.Float "hosts.automation.temp_c") 0.0 }}<div><div class="size-h3 {{ if gt (.JSON.Float "hosts.automation.temp_c") 80.0 }}color-negative{{ else }}color-highlight{{ end }}">{{ printf "%.0f" (.JSON.Float "hosts.automation.temp_c") }}&deg;C</div><div class="size-h6">CPU TEMP</div></div>{{ end }}
+                  <div><div class="size-h3 color-highlight">{{ printf "%.1f" (.JSON.Float "hosts.automation.uptime_d") }}d</div><div class="size-h6">UPTIME</div></div>
+                </div>
+                {{ range .JSON.Array "hosts.automation.disks" }}
+                <div class="flex justify-between size-h6"><span class="color-subdue">{{ .String "name" }}</span><span>{{ .Int "used_gb" }} / {{ .Int "total_gb" }} GB &middot; {{ .Int "pct" }}%</span></div><div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.Int "pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .Int "pct" }}"></div></div>
+                {{ end }}
+                <div class="size-h6 color-subdue margin-top-10">Docker {{ .JSON.String "hosts.automation.docker" }} &middot; <span class="color-positive">{{ .JSON.Int "hosts.automation.running" }} running</span> &middot; {{ .JSON.Int "hosts.automation.stopped" }} stopped &middot; {{ len (.JSON.Array "hosts.automation.stacks") }} stacks</div>
+              </div>
+              <div class="grow" style="flex-basis:24rem;min-width:0">
+                <div class="wb-stacks" style="max-height:16rem;overflow-y:auto">
+                {{ range .JSON.Array "hosts.automation.stacks" }}{{ if not (.Bool "private") }}
+                  <div class="wb-stack">
+                    <div class="wb-stack-name">{{ .String "name" }}</div>
+                    <ul class="list list-gap-4 size-h6">
+                    {{ range .Array "containers" }}
+                      <li class="text-truncate" title="{{ .String "image" }} &middot; {{ .String "status" }}"><span class="{{ if eq (.String "state") "running" }}{{ if eq (.String "health") "unhealthy" }}color-negative{{ else }}color-positive{{ end }}{{ else }}color-subdue{{ end }}">{{ if eq (.String "state") "running" }}&#9679;{{ else }}&#9675;{{ end }}</span> {{ .String "name" }}</li>
+                    {{ end }}
+                    </ul>
+                  </div>{{ end }}
+                {{ end }}
+                </div>
+              </div>
+            </div>
+            {{ else }}<p class="color-negative">Host unreachable: {{ .JSON.String "hosts.automation.err" }}</p>{{ end }}
+
+        - type: custom-api
           title: Dockge · devuan
           title-url: http://${HOST_DEVUAN}:5001
           cache: 1m
@@ -264,7 +302,7 @@
               <rect class="box box-core" x="540" y="96" width="230" height="96"/>
               <text class="t-title" x="655" y="118" text-anchor="middle">CT200 &middot; automation &middot; .112</text>
               <text class="t-sub" x="655" y="138" text-anchor="middle">Home Assistant &middot; Frigate &middot; Dockge</text>
-              <text class="t-tag" x="655" y="178" text-anchor="middle">4 cores &middot; 6 GB &middot; 32 GB disk</text>
+              <text class="t-tag" x="655" y="178" text-anchor="middle">4 cores &middot; 7 GB &middot; 32 GB disk</text>
               <text class="t-sub" x="655" y="214" text-anchor="middle">disk: 120 GB SSD (boot + root)</text>
 
               <!-- PBS -->
