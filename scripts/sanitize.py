@@ -38,6 +38,7 @@ ALLOW = [  # (source relative to RAW_DIR, destination relative to OUT_DIR/opt)
     ("opt/stacks/glance/compose.yaml", "stacks/glance/compose.yaml"),
     ("opt/stacks/glance-admin/compose.yaml", "stacks/glance-admin/compose.yaml"),
     ("opt/stacks/glance-agent/compose.yaml", "stacks/glance-agent/compose.yaml"),
+    ("opt/stacks/changedetection/compose.yaml", "stacks/changedetection/compose.yaml"),
     ("opt/stacks/glance-agent/lister", "stacks/glance-agent/lister"),
 ]
 SKIP_NAMES = {".env", "glance.env", "__pycache__"}
@@ -247,6 +248,13 @@ BOOKSTACK_TOKEN=                     # id:secret
 BOOKSTACK_HIDE_BOOKS=                # comma-separated book names to leave out of the Tools page
 PAPERLESS_TOKEN=
 FORGEJO_TOKEN=
+
+# ---- Shopping tab
+DISCOGS_TOKEN=                       # Discogs personal access token (Discogs > Settings > Developers)
+EBAY_APP_ID=                         # eBay developer keys (developer.ebay.com): App ID and Cert ID of the PRODUCTION keyset
+EBAY_CERT_ID=
+CHANGEDETECTION_URL=http://192.168.1.110:5100
+CHANGEDETECTION_KEY=                 # scripts/install.sh fills this in from changedetection.io's own settings
 GITHUB_USER=                         # your GitHub login (Dev page)
 GITHUB_TOKEN=                        # fine-grained, READ-ONLY personal access token (Metadata, Contents, Issues, Pull requests, Actions)
 

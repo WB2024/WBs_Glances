@@ -638,6 +638,301 @@
     search();
   }
 
+  /* ------------------------------------------------------------------ SHOPPING page
+     Shopping list, wishlist (+ locked gift ideas), purchases and spend, deal-alert terms, saved eBay searches, price watches.
+     State lives in glance-admin (/api/shopping/*), so every device sees the same lists. */
+  var SHOP_CATS = ['Tech', 'Music', 'Home', 'DIY', 'Tools', 'Other'];
+  function pound(n) { return n === null || n === undefined || n === '' ? '' : '£' + (Math.round(parseFloat(n) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: (parseFloat(n) % 1 ? 2 : 0), maximumFractionDigits: 2 }); }
+  function agoMin(m) { return m === null || m === undefined || m < 0 ? '' : m < 1 ? 'just now' : m < 90 ? m + 'm ago' : m < 2880 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; }
+  function shopSelect(opts, val, cls) { var s = h('select', cls || ''); opts.forEach(function (o) { var x = h('option', '', Array.isArray(o) ? o[1] : o); x.value = Array.isArray(o) ? o[0] : o; if (x.value === val) x.selected = true; s.appendChild(x); }); return s; }
+  function shopInput(ph, cls, type) { var i = h('input', cls || ''); i.type = type || 'text'; i.placeholder = ph; i.spellcheck = false; return i; }
+  function shopSay(msg) { return function (t, bad) { msg.textContent = t; msg.className = 'size-h6 wb-chan-msg ' + (bad ? 'color-negative' : 'color-subdue'); }; }
+  var shopSummaryCache = { at: 0, data: null, pending: null };
+  function shopSummary(force) {
+    var now = Date.now();
+    if (!force && shopSummaryCache.data && now - shopSummaryCache.at < 20000) return Promise.resolve(shopSummaryCache.data);
+    if (shopSummaryCache.pending) return shopSummaryCache.pending;
+    shopSummaryCache.pending = fetch(API + '/api/shopping/summary').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      .then(function (d) { shopSummaryCache.pending = null; if (d) { shopSummaryCache.data = d; shopSummaryCache.at = Date.now(); } return d || shopSummaryCache.data; });
+    return shopSummaryCache.pending;
+  }
+
+  /* ---- shopping list */
+  function initShopList(node) {
+    var data = [];
+    var form = h('form', 'wb-shop-form');
+    var text = shopInput('Add an item', 'wb-shop-grow'), qty = shopInput('Qty', 'wb-shop-qty'), store = shopInput('Shop', 'wb-shop-store');
+    store.setAttribute('list', 'wb-shops'); text.maxLength = 120; qty.maxLength = 12; store.maxLength = 30;
+    var dl = h('datalist'); dl.id = 'wb-shops'; ['Screwfix', 'Toolstation', 'B&Q', 'Wickes', 'Amazon', 'eBay', 'CeX', 'Tesco', 'Aldi', 'Argos'].forEach(function (s) { var o = h('option'); o.value = s; dl.appendChild(o); });
+    var cat = shopSelect(SHOP_CATS, 'Other'); var add = h('button', '', 'Add'); add.type = 'submit';
+    [text, qty, store, cat, add, dl].forEach(function (e) { form.appendChild(e); });
+    var msg = h('div', 'size-h6 color-subdue wb-chan-msg'), say = shopSay(msg), list = h('div', 'wb-shop-list');
+    node.appendChild(form); node.appendChild(msg); node.appendChild(list);
+    function render() {
+      list.textContent = '';
+      var groups = {};
+      data.forEach(function (it) { (groups[it.store || 'Anywhere'] = groups[it.store || 'Anywhere'] || []).push(it); });
+      Object.keys(groups).sort().forEach(function (g) {
+        list.appendChild(h('div', 'size-h6 color-subdue wb-shop-group', g + '  ·  ' + groups[g].filter(function (i) { return !i.done; }).length));
+        groups[g].forEach(function (it) {
+          var row = h('label', 'wb-shop-row' + (it.done ? ' wb-done' : ''));
+          var cb = h('input'); cb.type = 'checkbox'; cb.checked = it.done;
+          cb.addEventListener('change', function () { it.done = cb.checked; render(); jcall('PATCH', '/api/shopping/list/' + it.id, { done: cb.checked }).catch(function (e) { say(e.message, true); }); });
+          var t = h('span', 'wb-shop-text', it.text); var q = h('span', 'color-subdue size-h6', (it.qty ? it.qty + ' · ' : '') + it.cat);
+          var x = h('button', 'wb-chan-del', '✕'); x.type = 'button'; x.title = 'Remove';
+          x.addEventListener('click', function (ev) { ev.preventDefault(); data = data.filter(function (i) { return i.id !== it.id; }); render(); jcall('DELETE', '/api/shopping/list/' + it.id).catch(function (e) { say(e.message, true); }); });
+          [cb, t, q, x].forEach(function (e) { row.appendChild(e); }); list.appendChild(row);
+        });
+      });
+      var done = data.filter(function (i) { return i.done; }).length;
+      if (!data.length) list.appendChild(h('div', 'color-subdue size-h6', 'Nothing on the list.'));
+      else {
+        var foot = h('div', 'size-h6 color-subdue wb-shop-foot', (data.length - done) + ' to get');
+        if (done) { var cl = h('button', 'wb-chan-del', 'Clear ' + done + ' ticked'); cl.type = 'button'; cl.addEventListener('click', function () { jcall('POST', '/api/shopping/list/clear', {}).then(load).catch(function (e) { say(e.message, true); }); }); foot.appendChild(cl); }
+        list.appendChild(foot);
+      }
+    }
+    function load() { jcall('GET', '/api/shopping/state').then(function (d) { data = d.list || []; render(); }).catch(function () { say('glance-admin offline', true); }); }
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault(); if (!text.value.trim()) return;
+      jcall('POST', '/api/shopping/list', { text: text.value, qty: qty.value, store: store.value, cat: cat.value }).then(function (d) { data.push(d.result); text.value = ''; qty.value = ''; render(); text.focus(); say(''); })
+        .catch(function (e) { say(e.message, true); });
+    });
+    load();
+  }
+
+  /* ---- wishlist and (locked) gift ideas */
+  function initShopWish(node) {
+    var gifts = node.getAttribute('data-gifts') === '1';
+    var items = [], watches = {};
+    var form = h('form', 'wb-shop-form');
+    var title = shopInput(gifts ? 'Gift idea' : 'What do you want?', 'wb-shop-grow'), url = shopInput('Link (optional)', 'wb-shop-link'), target = shopInput('Target £', 'wb-shop-qty', 'number');
+    target.step = '0.01'; target.min = '0';
+    var prio = shopSelect([['3', '★★★ must'], ['2', '★★ want'], ['1', '★ maybe']], '2'); var cat = shopSelect(SHOP_CATS, 'Tech');
+    var notes = shopInput('Notes (optional)', 'wb-shop-grow'); var add = h('button', '', 'Add'); add.type = 'submit';
+    [title, url, target, prio, cat, notes, add].forEach(function (e) { form.appendChild(e); });
+    var msg = h('div', 'size-h6 color-subdue wb-chan-msg'), say = shopSay(msg), list = h('div', 'wb-shop-list');
+    node.appendChild(form); node.appendChild(msg); node.appendChild(list);
+    function render() {
+      list.textContent = '';
+      var mine = items.filter(function (w) { return !!w.gift === gifts; }).sort(function (a, b) { return b.priority - a.priority || b.added - a.added; });
+      if (!mine.length) list.appendChild(h('div', 'color-subdue size-h6', gifts ? 'No gift ideas yet.' : 'Nothing on the wishlist.'));
+      mine.forEach(function (w) {
+        var row = h('div', 'wb-wish');
+        var top = h('div', 'flex justify-between gap-10 items-center');
+        var left = h('span', 'text-truncate');
+        left.appendChild(h('span', 'color-primary wb-stars', '★★★'.slice(0, w.priority)));
+        if (w.url) { var a = h('a', 'color-highlight', ' ' + w.title); a.href = w.url; a.target = '_blank'; left.appendChild(a); } else left.appendChild(h('span', 'color-highlight', ' ' + w.title));
+        var right = h('span', 'shrink-0 size-h6 color-subdue', w.cat + (w.target ? ' · target ' + pound(w.target) : ''));
+        top.appendChild(left); top.appendChild(right); row.appendChild(top);
+        var wt = w.watch && watches[w.watch];
+        if (wt) {
+          var st = h('div', 'size-h6 ' + (wt.at_target ? 'color-positive' : 'color-subdue'));
+          st.textContent = wt.error ? 'watching: ' + wt.error : 'watching: ' + (wt.price !== null ? pound(wt.price) : 'price not found') + (wt.in_stock === false ? ' · out of stock' : '') + (wt.at_target ? '  ✓ at or below your target' : '');
+          row.appendChild(st);
+        }
+        if (w.notes) row.appendChild(h('div', 'size-h6 color-subdue', w.notes));
+        var acts = h('div', 'wb-shop-acts');
+        var bought = h('button', 'wb-chan-del', 'Bought'); bought.type = 'button';
+        bought.addEventListener('click', function () {
+          acts.textContent = '';
+          var pf = h('form', 'wb-shop-form'); var pr = shopInput('Paid £', 'wb-shop-qty', 'number'); pr.step = '0.01'; pr.min = '0'; if (w.target) pr.value = w.target; var sh = shopInput('Shop', 'wb-shop-store');
+          var ok = h('button', '', 'Save'); ok.type = 'submit'; var no = h('button', 'wb-chan-del', 'Cancel'); no.type = 'button';
+          [pr, sh, ok, no].forEach(function (e) { pf.appendChild(e); }); acts.appendChild(pf); pr.focus();
+          no.addEventListener('click', render);
+          pf.addEventListener('submit', function (ev) { ev.preventDefault(); jcall('POST', '/api/shopping/wish/' + w.id + '/bought', { price: pr.value, store: sh.value }).then(function () { items = items.filter(function (i) { return i.id !== w.id; }); render(); say('Moved to your purchases.'); }).catch(function (e) { say(e.message, true); }); });
+        });
+        acts.appendChild(bought);
+        if (w.url && !w.watch) {
+          var wb = h('button', 'wb-chan-del', 'Watch price'); wb.type = 'button';
+          wb.addEventListener('click', function () { wb.disabled = true; say('Adding a price watch...'); jcall('POST', '/api/shopping/wish/' + w.id + '/watch', {}).then(function (d) { w.watch = d.result.watch; shopSummary(true).then(function (s) { indexWatches(s); render(); }); say('Watching: checked every 6 hours (see Price watches).'); }).catch(function (e) { say(e.message, true); wb.disabled = false; }); });
+          acts.appendChild(wb);
+        }
+        var rm = h('button', 'wb-chan-del', '✕ Remove'); rm.type = 'button';
+        var armed = false, tm;
+        rm.addEventListener('click', function () {
+          if (!armed) { armed = true; rm.textContent = 'Sure?'; rm.classList.add('wb-chan-armed'); tm = setTimeout(function () { armed = false; rm.textContent = '✕ Remove'; rm.classList.remove('wb-chan-armed'); }, 3000); return; }
+          clearTimeout(tm); items = items.filter(function (i) { return i.id !== w.id; }); render(); jcall('DELETE', '/api/shopping/wish/' + w.id).catch(function (e) { say(e.message, true); });
+        });
+        acts.appendChild(rm); row.appendChild(acts); list.appendChild(row);
+      });
+    }
+    function indexWatches(s) { watches = {}; ((s && s.watches && s.watches.items) || []).forEach(function (x) { watches[x.id] = x; }); }
+    function load() {
+      jcall('GET', '/api/shopping/state').then(function (d) { items = d.wishlist || []; render(); return shopSummary(); }).then(function (s) { indexWatches(s); render(); })
+        .catch(function () { say('glance-admin offline', true); });
+    }
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault(); if (!title.value.trim()) return;
+      jcall('POST', '/api/shopping/wish', { title: title.value, url: url.value, target: target.value, priority: parseInt(prio.value, 10), cat: cat.value, notes: notes.value, gift: gifts })
+        .then(function (d) { items.push(d.result); title.value = ''; url.value = ''; target.value = ''; notes.value = ''; render(); say(''); }).catch(function (e) { say(e.message, true); });
+    });
+    load(); setInterval(function () { shopSummary().then(function (s) { indexWatches(s); render(); }); }, 120000);
+  }
+
+  /* ---- deal-alert terms */
+  function initShopTerms(node) {
+    var terms = [];
+    var form = h('form', 'wb-shop-form'); var t = shopInput('Add a word or phrase to watch for, e.g. "ddr3" or "quadro t1000"', 'wb-shop-grow'); var b = h('button', '', 'Add'); b.type = 'submit';
+    form.appendChild(t); form.appendChild(b);
+    var msg = h('div', 'size-h6 color-subdue wb-chan-msg'), say = shopSay(msg), chips = h('div', 'wb-pillrow');
+    node.appendChild(form); node.appendChild(chips); node.appendChild(msg);
+    function render() {
+      chips.textContent = '';
+      terms.forEach(function (x) {
+        var c = h('span', 'wb-pill'); c.appendChild(document.createTextNode(x + ' '));
+        var rm = h('button', 'wb-chan-del', '✕'); rm.type = 'button'; rm.title = 'Stop watching for this';
+        rm.addEventListener('click', function () { terms = terms.filter(function (y) { return y !== x; }); render(); jcall('DELETE', '/api/shopping/terms/' + encodeURIComponent(x)).catch(function (e) { say(e.message, true); }); });
+        c.appendChild(rm); chips.appendChild(c);
+      });
+      if (!terms.length) chips.appendChild(h('span', 'color-subdue size-h6', 'No alert words yet.'));
+    }
+    jcall('GET', '/api/shopping/state').then(function (d) { terms = d.terms || []; render(); }).catch(function () { say('glance-admin offline', true); });
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault(); if (!t.value.trim()) return;
+      jcall('POST', '/api/shopping/terms', { term: t.value }).then(function (d) { terms.push(d.result.term); t.value = ''; render(); say('Added. Matching deals appear at the top of the Deals box within a minute.'); shopSummaryCache.at = 0; }).catch(function (e) { say(e.message, true); });
+    });
+  }
+
+  /* ---- purchases and spend */
+  function initShopSpend(node) {
+    var buys = [];
+    var form = h('form', 'wb-shop-form');
+    var title = shopInput('What did you buy?', 'wb-shop-grow'), price = shopInput('£', 'wb-shop-qty', 'number'), store = shopInput('Shop', 'wb-shop-store'), cat = shopSelect(SHOP_CATS, 'Tech'), date = shopInput('', 'wb-shop-date', 'date');
+    price.step = '0.01'; price.min = '0'; date.value = new Date().toISOString().slice(0, 10); date.title = 'Date bought';
+    var add = h('button', '', 'Log'); add.type = 'submit';
+    [title, price, store, cat, date, add].forEach(function (e) { form.appendChild(e); });
+    var msg = h('div', 'size-h6 color-subdue wb-chan-msg'), say = shopSay(msg), chart = h('div', 'wb-spend'), list = h('div', 'wb-shop-list');
+    node.appendChild(form); node.appendChild(msg); node.appendChild(chart); node.appendChild(list);
+    function render() {
+      var months = [], now = new Date();
+      for (var i = 5; i >= 0; i--) { var d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push({ key: d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2), label: d.toLocaleString('en-GB', { month: 'short' }), total: 0, cats: {} }); }
+      buys.forEach(function (b) { var m = months.filter(function (x) { return b.date.slice(0, 7) === x.key; })[0]; if (m) { m.total += b.price; m.cats[b.cat] = (m.cats[b.cat] || 0) + b.price; } });
+      var max = Math.max.apply(null, months.map(function (m) { return m.total; }).concat([1]));
+      var cur = months[months.length - 1], avg = months.reduce(function (s, m) { return s + m.total; }, 0) / 6;
+      var topCat = Object.keys(cur.cats).sort(function (a, b) { return cur.cats[b] - cur.cats[a]; })[0];
+      chart.textContent = '';
+      var stats = h('div', 'wb-stats margin-bottom-10');
+      [[pound(cur.total) || '£0', 'THIS MONTH'], [pound(avg) || '£0', 'AVERAGE / MONTH'], [topCat || '-', 'TOP CATEGORY']].forEach(function (s) { var d = h('div'); d.appendChild(h('div', 'size-h3 color-highlight', s[0])); d.appendChild(h('div', 'size-h6', s[1])); stats.appendChild(d); });
+      chart.appendChild(stats);
+      var bars = h('div', 'wb-spend-bars');
+      months.forEach(function (m) {
+        var col = h('div', 'wb-spend-col'); col.title = m.label + ': ' + (pound(m.total) || '£0');
+        var stack = h('div', 'wb-spend-stack'); stack.style.height = Math.max(2, Math.round(m.total / max * 100)) + '%';
+        SHOP_CATS.forEach(function (c) { if (m.cats[c]) { var seg = h('div', 'wb-cat wb-cat-' + c.toLowerCase()); seg.style.flex = String(m.cats[c]); seg.title = c + ' ' + pound(m.cats[c]); stack.appendChild(seg); } });
+        col.appendChild(stack); col.appendChild(h('div', 'size-h6 color-subdue', m.label)); bars.appendChild(col);
+      });
+      chart.appendChild(bars);
+      var key = h('div', 'wb-pillrow margin-top-5'); SHOP_CATS.forEach(function (c) { var p = h('span', 'size-h6 color-subdue'); var dot = h('i', 'wb-dot wb-cat-' + c.toLowerCase()); p.appendChild(dot); p.appendChild(document.createTextNode(c + '  ')); key.appendChild(p); }); chart.appendChild(key);
+      list.textContent = '';
+      buys.slice().sort(function (a, b) { return b.date < a.date ? -1 : b.date > a.date ? 1 : 0; }).slice(0, 8).forEach(function (b) {
+        var row = h('div', 'flex justify-between gap-10 size-h6');
+        row.appendChild(h('span', 'text-truncate', b.title + (b.store ? '  ·  ' + b.store : '')));
+        var r = h('span', 'shrink-0 color-subdue'); r.appendChild(document.createTextNode(pound(b.price) + '  ·  ' + b.cat + '  ·  ' + b.date.slice(5) + '  '));
+        var x = h('button', 'wb-chan-del', '✕'); x.type = 'button'; x.title = 'Remove this entry';
+        x.addEventListener('click', function () { buys = buys.filter(function (i) { return i.id !== b.id; }); render(); jcall('DELETE', '/api/shopping/purchase/' + b.id).catch(function (e) { say(e.message, true); }); });
+        r.appendChild(x); row.appendChild(r); list.appendChild(row);
+      });
+    }
+    jcall('GET', '/api/shopping/state').then(function (d) { buys = d.purchases || []; render(); }).catch(function () { say('glance-admin offline', true); });
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault(); if (!title.value.trim()) return;
+      jcall('POST', '/api/shopping/purchase', { title: title.value, price: price.value, store: store.value, cat: cat.value, date: date.value }).then(function (d) { buys.push(d.result); title.value = ''; price.value = ''; render(); say(''); }).catch(function (e) { say(e.message, true); });
+    });
+  }
+
+  /* ---- saved eBay searches (official API: needs EBAY_APP_ID / EBAY_CERT_ID) */
+  function initShopEbay(node) {
+    var state = { ebay: [] };
+    var form = h('form', 'wb-shop-form');
+    var q = shopInput('Saved search, e.g. "ddr3 8gb udimm"', 'wb-shop-grow'), mx = shopInput('Max £', 'wb-shop-qty', 'number');
+    mx.step = '1'; mx.min = '0';
+    var cond = shopSelect([['any', 'any condition'], ['new', 'new'], ['used', 'used']], 'any'), opts = shopSelect([['any', 'buy now or auction'], ['bin', 'buy it now'], ['auction', 'auctions']], 'any');
+    var add = h('button', '', 'Save search'); add.type = 'submit';
+    [q, mx, cond, opts, add].forEach(function (e) { form.appendChild(e); });
+    var msg = h('div', 'size-h6 color-subdue wb-chan-msg'), say = shopSay(msg), out = h('div', 'wb-ebay');
+    node.appendChild(form); node.appendChild(msg); node.appendChild(out);
+    function card(i) {
+      var c = h('div', 'wb-card'); var a = h('a'); a.href = i.url; a.target = '_blank'; a.title = i.title;
+      var img = h('img'); img.alt = ''; img.classList.add('loaded', 'finished-transition'); img.loading = 'lazy'; img.src = i.img; img.style.aspectRatio = '1/1'; a.appendChild(img);
+      a.appendChild(h('div', 'wb-title', i.title));
+      a.appendChild(h('div', 'wb-sub wb-tag', pound(i.price) + (i.ship && parseFloat(i.ship) > 0 ? ' + ' + pound(i.ship) + ' p&p' : (i.ship === '0.00' ? ' + free p&p' : ''))));
+      a.appendChild(h('div', 'wb-sub', (i.auction ? 'auction' : 'buy it now') + (i.cond ? ' · ' + i.cond : '') + (i.age_min !== null && i.age_min >= 0 ? ' · listed ' + agoMin(i.age_min) : '')));
+      c.appendChild(a); return c;
+    }
+    function render(sum) {
+      out.textContent = '';
+      var res = {}; ((sum && sum.ebay && sum.ebay.searches) || []).forEach(function (s) { res[s.id] = s; });
+      var configured = sum && sum.ebay_configured;
+      if (!configured) {
+        var n = h('div', 'wb-ebay-note size-h6');
+        n.appendChild(document.createTextNode('eBay needs free developer keys before it can show listings: create an application at developer.ebay.com, then add EBAY_APP_ID (the App ID) and EBAY_CERT_ID (the Cert ID) from its production keyset to the .env on the server. Your saved searches below are kept and will start filling in as soon as the keys are there.'));
+        out.appendChild(n);
+      } else if (sum.ebay && sum.ebay.err) out.appendChild(h('div', 'color-negative size-h6', sum.ebay.err));
+      state.ebay.forEach(function (s) {
+        var box = h('div', 'wb-ebay-search'); var head = h('div', 'flex justify-between gap-10 items-center margin-bottom-5');
+        var r = res[s.id] || {};
+        head.appendChild(h('span', 'color-highlight', s.q + '  ' + (s.max ? '· up to ' + pound(s.max) : '') + (s.cond !== 'any' ? ' · ' + s.cond : '') + (s.opts !== 'any' ? ' · ' + (s.opts === 'bin' ? 'buy it now' : 'auctions') : '')));
+        var right = h('span', 'size-h6 color-subdue'); right.appendChild(document.createTextNode((r.total !== undefined ? r.total + ' listings  ' : '')));
+        var x = h('button', 'wb-chan-del', '✕'); x.type = 'button'; x.title = 'Remove this saved search';
+        x.addEventListener('click', function () { state.ebay = state.ebay.filter(function (i) { return i.id !== s.id; }); render(sum); jcall('DELETE', '/api/shopping/ebay/' + s.id).catch(function (e) { say(e.message, true); }); });
+        right.appendChild(x); head.appendChild(right); box.appendChild(head);
+        if (r.err) box.appendChild(h('div', 'color-negative size-h6', r.err));
+        else if (r.items && r.items.length) { var g = h('div', 'wb-results'); r.items.forEach(function (i) { g.appendChild(card(i)); }); box.appendChild(g); }
+        else if (configured) box.appendChild(h('div', 'color-subdue size-h6', 'No listings match right now.'));
+        out.appendChild(box);
+      });
+      if (!state.ebay.length) out.appendChild(h('div', 'color-subdue size-h6', 'No saved searches yet.'));
+    }
+    function load() { return jcall('GET', '/api/shopping/state').then(function (d) { state.ebay = d.ebay || []; return shopSummary(); }).then(render).catch(function () { say('glance-admin offline', true); }); }
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault(); if (!q.value.trim()) return;
+      jcall('POST', '/api/shopping/ebay', { q: q.value, max: mx.value, cond: cond.value, opts: opts.value }).then(function (d) { state.ebay.push(d.result); q.value = ''; mx.value = ''; say('Saved. Results appear after the next refresh (up to 15 minutes).'); shopSummary().then(render); }).catch(function (e) { say(e.message, true); });
+    });
+    load(); setInterval(function () { shopSummary().then(render); }, 300000);
+  }
+
+  /* ---- price and stock watches (changedetection.io) */
+  function initShopWatch(node) {
+    var form = h('form', 'wb-shop-form');
+    var url = shopInput('Product page address (https://...)', 'wb-shop-grow'), name = shopInput('Name (optional)', 'wb-shop-link');
+    var lab = h('label', 'size-h6 color-subdue'); var br = h('input'); br.type = 'checkbox'; lab.appendChild(br); lab.appendChild(document.createTextNode(' use a real browser (for shops that need JavaScript)'));
+    var add = h('button', '', 'Watch'); add.type = 'submit';
+    [url, name, lab, add].forEach(function (e) { form.appendChild(e); });
+    var msg = h('div', 'size-h6 color-subdue wb-chan-msg'), say = shopSay(msg), out = h('div', 'wb-watches');
+    node.appendChild(form); node.appendChild(msg); node.appendChild(out);
+    function render(sum) {
+      out.textContent = '';
+      var w = sum && sum.watches;
+      if (!w || w.configured === false) { out.appendChild(h('div', 'color-subdue size-h6', 'changedetection.io is not set up yet.')); return; }
+      if (w.ok === false) { out.appendChild(h('div', 'color-negative size-h6', w.err)); return; }
+      if (!w.items.length) { out.appendChild(h('div', 'color-subdue size-h6', 'No watches yet. Paste a product page above, or press "Watch price" on a wishlist item.')); return; }
+      w.items.forEach(function (it) {
+        var row = h('div', 'wb-watch' + (it.at_target ? ' wb-watch-hit' : '') + (it.error ? ' wb-watch-bad' : ''));
+        var top = h('div', 'flex justify-between gap-10 items-center'); var a = h('a', 'color-highlight text-truncate', it.title); a.href = it.url; a.target = '_blank';
+        var pr = h('span', 'shrink-0 size-h3 ' + (it.at_target ? 'color-positive' : 'color-highlight'), it.price !== null ? pound(it.price) : (it.error ? '–' : '...'));
+        top.appendChild(a); top.appendChild(pr); row.appendChild(top);
+        var meta = [];
+        if (it.in_stock === true) meta.push('in stock'); else if (it.in_stock === false) meta.push('out of stock');
+        if (it.prev !== null && it.price !== null && it.prev !== it.price) meta.push((it.price < it.prev ? '▼ ' : '▲ ') + pound(Math.abs(it.price - it.prev)) + ' (' + it.change_pct + '%) since last change');
+        if (it.target) meta.push('target ' + pound(it.target) + (it.at_target ? ' ✓' : ''));
+        meta.push(it.age_min !== null ? 'checked ' + agoMin(it.age_min) : 'not checked yet');
+        row.appendChild(h('div', 'size-h6 ' + (it.error ? 'color-negative' : 'color-subdue'), it.error ? it.error : meta.join('  ·  ')));
+        var acts = h('div', 'wb-shop-acts');
+        var rc = h('button', 'wb-chan-del', 'Check now'); rc.type = 'button'; rc.addEventListener('click', function () { rc.disabled = true; jcall('POST', '/api/shopping/watch/' + it.id + '/recheck', {}).then(function () { say('Checking... refresh in a minute.'); setTimeout(function () { shopSummary(true).then(render); }, 20000); }).catch(function (e) { say(e.message, true); }); });
+        var rm = h('button', 'wb-chan-del', '✕ Remove'); rm.type = 'button'; var armed = false, tm;
+        rm.addEventListener('click', function () { if (!armed) { armed = true; rm.textContent = 'Sure?'; rm.classList.add('wb-chan-armed'); tm = setTimeout(function () { armed = false; rm.textContent = '✕ Remove'; rm.classList.remove('wb-chan-armed'); }, 3000); return; } clearTimeout(tm); jcall('DELETE', '/api/shopping/watch/' + it.id).then(function () { shopSummary(true).then(render); }).catch(function (e) { say(e.message, true); }); });
+        acts.appendChild(rc); acts.appendChild(rm); row.appendChild(acts); out.appendChild(row);
+      });
+    }
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault(); if (!url.value.trim()) return; add.disabled = true; say('Adding the watch...');
+      jcall('POST', '/api/shopping/watch', { url: url.value, title: name.value, browser: br.checked }).then(function () { url.value = ''; name.value = ''; say('Watching. The first check runs within a minute; then every 6 hours.'); setTimeout(function () { shopSummary(true).then(render); }, 25000); })
+        .catch(function (e) { say(e.message, true); }).then(function () { add.disabled = false; });
+    });
+    shopSummary().then(render); setInterval(function () { shopSummary().then(render); }, 120000);
+  }
+
   /* ------------------------------------------------------------------ LIVE camera streams
      <img data-live-src="...mjpeg..." data-still="...jpg">: the still is shown by default; the MJPEG stream is attached only
      while the image is on screen AND the tab is visible, and dropped again otherwise (a live stream costs ~120 KB/s). */
@@ -697,7 +992,7 @@
   }
 
   /* ------------------------------------------------------------------ boot */
-  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, bookmarks: initBookmarks };
+  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks };
   var pending = false;
   function scan() {
     pending = false;

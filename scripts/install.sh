@@ -49,6 +49,37 @@ else
   echo "   no GLANCE_PIN set: the locked widgets will say 'not configured' until you set one and re-run"
 fi
 
+echo "==> price-watch container (changedetection.io) and its API key"
+( cd "$OPT/stacks/changedetection" && docker compose up -d )
+for _ in $(seq 1 30); do [ -s "$OPT/stacks/changedetection/datastore/changedetection.json" ] && break; sleep 2; done
+python3 - <<'PY'
+import json, re
+env = open("/opt/glance/.env", encoding="utf-8").read()
+if re.search(r"^CHANGEDETECTION_KEY=.+", env, re.M):
+    raise SystemExit
+try:
+    d = json.load(open("/opt/stacks/changedetection/datastore/changedetection.json"))
+except OSError:
+    raise SystemExit("   changedetection.io has not written its settings yet: re-run this script in a minute to pick up its API key")
+def find(o):
+    if isinstance(o, dict):
+        for k, v in o.items():
+            if k == "api_access_token" and v:
+                return v
+            r = find(v)
+            if r:
+                return r
+    elif isinstance(o, list):
+        for v in o:
+            r = find(v)
+            if r:
+                return r
+key = find(d) or ""
+env = re.sub(r"^CHANGEDETECTION_KEY=.*\n?", "", env, flags=re.M).rstrip("\n") + "\nCHANGEDETECTION_KEY=%s\n" % key
+open("/opt/glance/.env", "w", encoding="utf-8").write(env)
+print("   stored the changedetection.io API key" if key else "   could not find the API key yet")
+PY
+
 echo "==> splitting the env: Glance only receives the variables its config uses"
 python3 "$OPT/glance/tools/sync_env.py"
 # glance-admin has its own env file with just the names its compose file lists

@@ -25,7 +25,7 @@ GLANCE_URL = os.environ.get("GLANCE_URL", "http://host.docker.internal:3002").rs
 PAGES = [p.split(":", 1) for p in os.environ.get(
     "PAGES",
     "home:Home,downloads:Downloads,audio:Audio,video:Video,infra:Infra,networking:Networking,"
-    "tools:Tools,dev:Dev,cameras:Cameras,news:News Feeds,video-news:Video News Feed,bookmarks:Bookmarks").split(",")]
+    "tools:Tools,dev:Dev,shopping:Shopping,cameras:Cameras,news:News Feeds,video-news:Video News Feed,bookmarks:Bookmarks").split(",")]
 WARM_SECONDS = int(os.environ.get("WARM_SECONDS", "15"))     # 0 turns the page warmer off
 REINDEX_SECONDS = int(os.environ.get("REINDEX_SECONDS", "300"))
 LIDARR_URL = os.environ.get("LIDARR_URL", "http://host.docker.internal:8686").rstrip("/")
@@ -482,6 +482,65 @@ def _cam_loop():
         time.sleep(wait)
 
 
+_shopst = {"at": 0, "data": None, "err": ""}
+
+
+def shop_state():
+    import shop
+    st = _read("shopping.json", None)
+    if st is None:
+        st = shop.default_state()
+        _write("shopping.json", st)
+    return shop.normalise(st)
+
+
+def shop_summary_build():
+    """Everything slow or external (deals, stock, eBay, Discogs, watches); each part has its own cache lifetime inside shop.py."""
+    import hashlib
+    import shop
+    st = shop_state()
+    key = hashlib.md5(json.dumps(st["ebay"], sort_keys=True).encode()).hexdigest()[:8]
+    return {"at": int(time.time()), "deals_raw": shop.merge_deals(shop.cached("deals:hukd", 900, lambda: shop.deals("hukd")), shop.cached("deals:reddit", 2400, lambda: shop.deals("reddit"))), "stock": shop.cached("stock", 900, shop.stock),
+            "ebay": shop.cached("ebay:" + key, 900, lambda: shop.ebay_results(st["ebay"])), "discogs": shop.cached("discogs", 3600, shop.discogs),
+            "watches": shop.cached("watches", 120, shop.watches)}
+
+
+def shop_loop():
+    time.sleep(14)
+    while True:
+        try:
+            _shopst.update(data=shop_summary_build(), at=int(time.time()), err="")
+            _persist("shopping", {"at": _shopst["at"], "data": _shopst["data"]})
+            wait = 90
+        except Exception as exc:
+            _shopst["err"] = str(exc)[:200]
+            wait = 120
+        time.sleep(wait)
+
+
+def shop_kick():
+    """Rebuilds the cached Shopping data in the background right after you change something that affects it."""
+    def run():
+        try:
+            _shopst.update(data=shop_summary_build(), at=int(time.time()), err="")
+        except Exception as exc:
+            _shopst["err"] = str(exc)[:200]
+    threading.Thread(target=run, daemon=True).start()
+
+
+def shop_summary():
+    """The cached build plus the parts that depend on state you can edit (alert terms, watch targets), applied fresh."""
+    import shop
+    st = shop_state()
+    d = dict(_shopst["data"])
+    d["deals"] = shop.deals_for(st["terms"], d.pop("deals_raw", {}))
+    d["watches"] = shop.apply_targets(d.get("watches"), {w["watch"]: w["target"] for w in st["wishlist"] if w.get("watch")})
+    d["ebay_configured"] = shop.ebay_configured()
+    d["counts"] = {"list_open": sum(1 for i in st["list"] if not i["done"]), "wishlist": sum(1 for w in st["wishlist"] if not w.get("gift")), "gifts": sum(1 for w in st["wishlist"] if w.get("gift")),
+                   "watches": len((d["watches"] or {}).get("items", [])), "at_target": sum(1 for w in (d["watches"] or {}).get("items", []) if w.get("at_target"))}
+    return d
+
+
 _devst = {"at": 0, "data": None, "err": ""}
 
 
@@ -908,6 +967,108 @@ class H(BaseHTTPRequestHandler):
                 return self._send(502, {"error": "Frigate did not answer"})
             return self._send(200, res)
 
+        if path.startswith("/api/shopping"):
+            import shop
+            sub = path[len("/api/shopping"):].strip("/").split("/")
+            try:
+                if sub == ["summary"] and method == "GET":
+                    if _shopst["data"] is None:
+                        return self._send(503, {"error": "not cached yet", "detail": _shopst["err"]})
+                    return self._send(200, shop_summary())
+                if sub == ["state"] and method == "GET":
+                    with _lock:
+                        return self._send(200, shop_state())
+                b = self._body() if method in ("POST", "PATCH") else {}
+                with _lock:
+                    st = shop_state()
+                    res = None
+                    k = sub[0] if sub else ""
+                    iid = sub[1] if len(sub) > 1 else ""
+                    if k == "list":
+                        if method == "POST" and not iid:
+                            res = shop.list_add(st, b.get("text"), b.get("qty"), b.get("store"), b.get("cat"))
+                        elif method == "POST" and iid == "clear":
+                            res = {"cleared": shop.list_clear_done(st)}
+                        elif method == "PATCH":
+                            res = shop.list_patch(st, iid, b)
+                        elif method == "DELETE":
+                            res = shop.remove(st, "list", iid)
+                        else:
+                            return self._send(405, {"error": "bad request"})
+                    elif k == "wish":
+                        if method == "POST" and not iid:
+                            res = shop.wish_add(st, b.get("title"), b.get("url"), b.get("target"), b.get("priority", 2), b.get("cat"), b.get("notes"), b.get("gift"))
+                        elif method == "PATCH":
+                            res = shop.wish_patch(st, iid, b)
+                        elif method == "DELETE":
+                            res = shop.remove(st, "wishlist", iid)
+                        elif method == "POST" and len(sub) == 3 and sub[2] == "bought":
+                            res = shop.wish_bought(st, iid, b.get("price"), b.get("store"), b.get("date"))
+                        elif method == "POST" and len(sub) == 3 and sub[2] == "watch":
+                            _, w = shop._find(st, "wishlist", iid)
+                            if not w["url"]:
+                                raise ValueError("add a link to this wish first")
+                            w["watch"] = shop.watch_add(w["url"], w["title"], bool(b.get("browser")))
+                            shop._cache.pop("watches", None)
+                            shop_kick()
+                            res = w
+                        else:
+                            return self._send(405, {"error": "bad request"})
+                    elif k == "purchase":
+                        if method == "POST":
+                            res = shop.purchase_add(st, b.get("title"), b.get("price"), b.get("store"), b.get("cat"), b.get("date"))
+                        elif method == "DELETE":
+                            res = shop.remove(st, "purchases", iid)
+                        else:
+                            return self._send(405, {"error": "bad request"})
+                    elif k == "terms":
+                        if method == "POST":
+                            res = {"term": shop.term_add(st, b.get("term"))}
+                        elif method == "DELETE":
+                            shop.term_remove(st, urllib.parse.unquote(iid))
+                            res = {"ok": True}
+                        else:
+                            return self._send(405, {"error": "bad request"})
+                    elif k == "ebay":
+                        if method == "POST":
+                            res = shop.ebay_add(st, b.get("q"), b.get("max"), b.get("cond"), b.get("opts"))
+                            shop_kick()
+                        elif method == "DELETE":
+                            res = shop.remove(st, "ebay", iid)
+                        else:
+                            return self._send(405, {"error": "bad request"})
+                    elif k == "watch":
+                        if method == "POST" and not iid:
+                            uid = shop.watch_add(b.get("url"), b.get("title"), bool(b.get("browser")))
+                            shop._cache.pop("watches", None)
+                            shop_kick()
+                            res = {"id": uid}
+                        elif method == "POST" and len(sub) == 3 and sub[2] == "recheck":
+                            shop.watch_recheck(iid)
+                            shop._cache.pop("watches", None)
+                            shop_kick()
+                            res = {"ok": True}
+                        elif method == "DELETE":
+                            shop.watch_remove(iid)
+                            for w in st["wishlist"]:
+                                if w.get("watch") == iid:
+                                    w["watch"] = ""
+                            shop._cache.pop("watches", None)
+                            shop_kick()
+                            res = {"ok": True}
+                        else:
+                            return self._send(405, {"error": "bad request"})
+                    else:
+                        return self._send(404, {"error": "not found"})
+                    _write("shopping.json", st)
+                return self._send(201 if method == "POST" else 200, {"result": res})
+            except KeyError:
+                return self._send(404, {"error": "not found"})
+            except ValueError as exc:
+                return self._send(400, {"error": str(exc)})
+            except urllib.error.URLError:
+                return self._send(502, {"error": "that service did not answer"})
+
         if path == "/api/dev/summary" and method == "GET":
             if _devst["data"] is None:
                 return self._send(503, {"error": "not cached yet", "detail": _devst["err"]})
@@ -1069,6 +1230,9 @@ if __name__ == "__main__":
         _c = _restore(_name)
         if _c and _c.get("data") is not None:
             _state.update(data=_c["data"], at=_c.get("at", 0))
+    _c = _restore("shopping")
+    if _c and _c.get("data"):
+        _shopst.update(data=_c["data"], at=_c.get("at", 0))
     _c = _restore("abs")
     if _c:
         _abs.update(at=_c.get("at", 0), **{"continue": _c.get("continue", []), "recent": _c.get("recent", []), "stats": _c.get("stats", {}), "libs": _c.get("libs", [])})
@@ -1093,6 +1257,7 @@ if __name__ == "__main__":
     threading.Thread(target=_rel_loop, daemon=True).start()
     threading.Thread(target=_cam_loop, daemon=True).start()
     threading.Thread(target=_dev_loop, daemon=True).start()
+    threading.Thread(target=shop_loop, daemon=True).start()
     if os.environ.get("TAILSCALE_OAUTH_SECRET"):
         threading.Thread(target=_net_loop, args=("tailscale", _tailscale, 120), daemon=True).start()
     if os.environ.get("NPM_PASS"):

@@ -411,3 +411,47 @@ body {
 .wb-miniform button { padding: 0.5rem 1rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; cursor: pointer; }
 .wb-miniform button:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .wb-ctr { padding-top: 0.6rem; border-top: 1px solid var(--color-widget-content-border); }
+
+/* ══ Shopping page ══════════════════════════════════════════════════════════ */
+.wb-shop-form { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
+.wb-shop-form input, .wb-shop-form select { padding: 0.45rem 0.65rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; font-size: var(--font-size-h6); outline: none; min-width: 0; }
+.wb-shop-form input:focus { border-color: var(--color-primary); }
+.wb-shop-form input[type=checkbox] { padding: 0; }
+.wb-shop-form button { padding: 0.45rem 0.9rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; font-size: var(--font-size-h6); cursor: pointer; }
+.wb-shop-form button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.wb-shop-form input[type=date] { color-scheme: dark; }
+.wb-shop-grow { flex: 1 1 11rem; }
+.wb-shop-link { flex: 1 1 9rem; }
+.wb-shop-qty { flex: 0 1 5.5rem; }
+.wb-shop-store { flex: 0 1 7rem; }
+.wb-shop-date { flex: 0 1 9rem; }
+.wb-shop-list { margin-top: 0.4rem; }
+.wb-shop-group { margin: 0.8rem 0 0.3rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.wb-shop-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.25rem 0; cursor: pointer; }
+.wb-shop-row .wb-shop-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.wb-shop-row.wb-done .wb-shop-text { text-decoration: line-through; color: var(--color-text-subdue); }
+.wb-shop-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--color-widget-content-border); }
+.wb-wish { padding: 0.55rem 0; border-bottom: 1px solid var(--color-widget-content-border); }
+.wb-wish:last-child { border-bottom: none; }
+.wb-stars { letter-spacing: 0.1em; font-size: 0.85em; }
+.wb-shop-acts { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+.wb-pill .wb-chan-del { padding: 0 0.25rem; border: none; }
+.wb-spend-bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 6.5rem; margin-bottom: 0.2rem; }
+.wb-spend-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; text-align: center; gap: 0.2rem; }
+.wb-spend-stack { display: flex; flex-direction: column; border-radius: 3px; overflow: hidden; }
+.wb-cat { background: var(--color-text-subdue); }
+.wb-cat-tech { background: #6aa6e8; } .wb-cat-music { background: #c586e0; } .wb-cat-home { background: #7bc67b; } .wb-cat-diy { background: #e0a14e; } .wb-cat-tools { background: #e06c6c; } .wb-cat-other { background: #8b949e; }
+i.wb-cat { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius: 50%; margin-right: 0.3rem; }
+.wb-ebay-note { padding: 0.7rem 0.9rem; margin-bottom: 0.8rem; background: var(--color-widget-background-highlight); border: 1px dashed var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-subdue); line-height: 1.45; }
+.wb-ebay-search { margin-top: 1rem; }
+.wb-watch { padding: 0.6rem 0.8rem; margin-bottom: 0.6rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); }
+.wb-watch-hit { border-color: var(--color-positive); }
+.wb-watch-bad { border-color: var(--color-negative); opacity: 0.85; }
+.wb-deal { display: flex; gap: 0.7rem; align-items: center; padding: 0.4rem 0; }
+.wb-deal img { width: 2.8rem; height: 2.8rem; object-fit: contain; border-radius: 4px; background: #fff; flex: 0 0 auto; }
+.wb-deal-main { flex: 1; min-width: 0; }
+.wb-deal-hit { background: color-mix(in srgb, var(--color-primary) 10%, transparent); border-left: 3px solid var(--color-primary); padding-left: 0.6rem; }
+.wb-hitchip { display: inline-block; margin-left: 0.4rem; padding: 0 0.45rem; border-radius: 999px; background: var(--color-primary); color: var(--color-widget-background); font-size: 0.75em; }
+.wb-shop-qty { flex: 1 1 4rem; }
+.wb-shop-store { flex: 1 1 5.5rem; }
+.wb-shop-date { flex: 1 1 8.5rem; }

@@ -1,0 +1,161 @@
+- name: Shopping
+  slug: shopping
+  width: wide
+  columns:
+    - size: small
+      widgets:
+        - type: html
+          title: Shopping list
+          source: |
+            <div class="widget-header"><h2 class="uppercase">Shopping list</h2></div>
+            <div data-wb="shop-list" data-wb-noindex></div>
+
+        - type: html
+          title: Wishlist
+          source: |
+            <div class="widget-header"><h2 class="uppercase">Wishlist</h2></div>
+            <div data-wb="shop-wish" data-wb-noindex></div>
+
+        - type: custom-api
+          title: Gift ideas
+          title-url: http://${HOST_SVC}:3002/shopping
+          css-class: wb-restricted
+          cache: 10m
+          url: http://${HOST_SVC}:3005/api/shopping/summary
+          template: |
+            <div data-wb="shop-wish" data-gifts="1" data-wb-noindex></div>
+
+    - size: full
+      widgets:
+        - type: html
+          title: Shop search
+          source: |
+            <div class="widget-header"><h2 class="uppercase">Shop search</h2></div>
+            <div data-wb="search" data-wb-noindex data-engines='[["eBay UK","https://www.ebay.co.uk/sch/i.html?_nkw={QUERY}","si:ebay"],["Amazon UK","https://www.amazon.co.uk/s?k={QUERY}","si:amazon"],["CeX","https://uk.webuy.com/search?stext={QUERY}","mdi:swap-horizontal"],["Scan","https://www.scan.co.uk/search?q={QUERY}","mdi:chip"],["CCL","https://www.cclonline.com/search/?q={QUERY}","mdi:chip"],["Overclockers","https://www.overclockers.co.uk/search?sSearch={QUERY}","mdi:chip"],["Argos","https://www.argos.co.uk/search/{QUERY}/","mdi:cart-outline"],["Currys","https://www.currys.co.uk/search?q={QUERY}","mdi:cart-outline"],["Screwfix","https://www.screwfix.com/search?search={QUERY}","mdi:tools"],["Toolstation","https://www.toolstation.com/search?q={QUERY}","mdi:tools"],["B&Q","https://www.diy.com/search?term={QUERY}","mdi:hammer-wrench"],["Wickes","https://www.wickes.co.uk/search?text={QUERY}","mdi:hammer-wrench"],["Rough Trade","https://www.roughtrade.com/gb/search?q={QUERY}","mdi:album"],["Discogs","https://www.discogs.com/sell/list?q={QUERY}&currency=GBP","si:discogs"],["Vinted","https://www.vinted.co.uk/catalog?search_text={QUERY}","si:vinted"],["Gumtree","https://www.gumtree.com/search?search_category=all&q={QUERY}","mdi:cart-outline"],["Facebook Marketplace","https://www.facebook.com/marketplace/search/?query={QUERY}","si:facebook"],["PriceSpy","https://pricespy.co.uk/search?search={QUERY}","mdi:tag-search"],["Google Shopping","https://www.google.com/search?tbm=shop&gl=uk&q={QUERY}","si:google"],["HotUKDeals","https://www.hotukdeals.com/search?q={QUERY}","mdi:fire"]]'></div>
+
+        - type: custom-api
+          title: Deals
+          title-url: https://www.hotukdeals.com
+          cache: 1m
+          url: http://${HOST_SVC}:3005/api/shopping/summary
+          template: |
+
+            {{ if .JSON.Bool "deals.ok" }}
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 {{ if gt (.JSON.Int "deals.match_count") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "deals.match_count" }}</div><div class="size-h6">MATCH YOUR WORDS</div></div>
+              <div><div class="size-h3 color-highlight">{{ len (.JSON.Array "deals.latest") }}</div><div class="size-h6">LATEST DEALS</div></div>
+              <div><div class="size-h3 color-highlight">{{ len (.JSON.Array "deals.terms") }}</div><div class="size-h6">ALERT WORDS</div></div>
+            </div>
+            <div data-wb="shop-terms" data-wb-noindex class="margin-bottom-15"></div>
+            {{ if gt (len (.JSON.Array "deals.matches")) 0 }}
+            <div class="size-h6 color-primary margin-bottom-5">MATCHING YOUR ALERT WORDS</div>
+            {{ range .JSON.Array "deals.matches" }}
+            <div class="wb-deal{{ if gt (len (.Array "hits")) 0 }} wb-deal-hit{{ end }}">
+              {{ if ne (.String "thumb") "" }}<img src="{{ .String "thumb" }}" alt="" loading="lazy">{{ end }}
+              <div class="wb-deal-main">
+                <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ range .Array "hits" }}<span class="wb-hitchip">{{ .String "" }}</span>{{ end }}
+                <div class="size-h6 color-subdue">{{ .String "source" }}{{ if ne (.String "merchant") "" }} &middot; {{ .String "merchant" }}{{ end }}{{ if ne (.String "price") "" }} &middot; <span class="color-primary">{{ .String "price" }}</span>{{ end }} &middot; {{ if lt (.Int "age_min") 0 }}{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m ago{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h ago{{ else }}{{ div (.Int "age_min") 1440 }}d ago{{ end }}</div>
+              </div>
+            </div>
+            {{ end }}
+            <div class="margin-bottom-15"></div>
+            {{ else }}<p class="size-h6 color-subdue margin-bottom-15">No current deal matches your alert words.</p>{{ end }}
+            <div class="size-h6 color-subdue margin-bottom-5">LATEST</div>
+            {{ $i := 0 }}{{ range .JSON.Array "deals.latest" }}{{ $i = add $i 1 }}{{ if le $i 12 }}
+            <div class="wb-deal{{ if gt (len (.Array "hits")) 0 }} wb-deal-hit{{ end }}">
+              {{ if ne (.String "thumb") "" }}<img src="{{ .String "thumb" }}" alt="" loading="lazy">{{ end }}
+              <div class="wb-deal-main">
+                <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ range .Array "hits" }}<span class="wb-hitchip">{{ .String "" }}</span>{{ end }}
+                <div class="size-h6 color-subdue">{{ .String "source" }}{{ if ne (.String "merchant") "" }} &middot; {{ .String "merchant" }}{{ end }}{{ if ne (.String "price") "" }} &middot; <span class="color-primary">{{ .String "price" }}</span>{{ end }} &middot; {{ if lt (.Int "age_min") 0 }}{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m ago{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h ago{{ else }}{{ div (.Int "age_min") 1440 }}d ago{{ end }}</div>
+              </div>
+            </div>
+            {{ end }}{{ end }}
+            <details class="wb-fold margin-top-10"><summary>More deals ({{ len (.JSON.Array "deals.latest") }} loaded)</summary>
+              <div class="margin-top-10">{{ $j := 0 }}{{ range .JSON.Array "deals.latest" }}{{ $j = add $j 1 }}{{ if gt $j 12 }}
+            <div class="wb-deal{{ if gt (len (.Array "hits")) 0 }} wb-deal-hit{{ end }}">
+              {{ if ne (.String "thumb") "" }}<img src="{{ .String "thumb" }}" alt="" loading="lazy">{{ end }}
+              <div class="wb-deal-main">
+                <a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a>{{ range .Array "hits" }}<span class="wb-hitchip">{{ .String "" }}</span>{{ end }}
+                <div class="size-h6 color-subdue">{{ .String "source" }}{{ if ne (.String "merchant") "" }} &middot; {{ .String "merchant" }}{{ end }}{{ if ne (.String "price") "" }} &middot; <span class="color-primary">{{ .String "price" }}</span>{{ end }} &middot; {{ if lt (.Int "age_min") 0 }}{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m ago{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h ago{{ else }}{{ div (.Int "age_min") 1440 }}d ago{{ end }}</div>
+              </div>
+            </div>
+            {{ end }}{{ end }}</div>
+            </details>
+            {{ if gt (len (.JSON.Array "deals.errors")) 0 }}<p class="size-h6 color-subdue margin-top-10">Some sources did not answer: {{ range .JSON.Array "deals.errors" }}{{ .String "" }}; {{ end }}</p>{{ end }}
+            {{ else }}<p class="color-negative">Deals are not available yet: {{ .JSON.String "deals.err" }}</p>{{ end }}
+
+
+        - type: html
+          title: eBay saved searches
+          source: |
+            <div class="widget-header"><h2 class="uppercase">eBay saved searches</h2></div>
+            <div data-wb="shop-ebay" data-wb-noindex></div>
+
+        - type: html
+          title: Price watches
+          source: |
+            <div class="widget-header"><h2 class="uppercase">Price watches</h2></div>
+            <div data-wb="shop-watch" data-wb-noindex></div>
+
+    - size: small
+      widgets:
+        - type: custom-api
+          title: Raspberry Pi stock (UK)
+          title-url: https://rpilocator.com/?country=GB
+          cache: 5m
+          url: http://${HOST_SVC}:3005/api/shopping/summary
+          template: |
+
+            {{ if .JSON.Bool "stock.ok" }}
+            {{ if gt (len (.JSON.Array "stock.items")) 0 }}
+            <ul class="list list-gap-8 size-h6">
+            {{ range .JSON.Array "stock.items" }}
+              <li><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a><div class="color-subdue">{{ if lt (.Int "age_min") 0 }}{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }}m ago{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h ago{{ else }}{{ div (.Int "age_min") 1440 }}d ago{{ end }}</div></li>
+            {{ end }}
+            </ul>
+            {{ else }}<p class="color-subdue">Nothing in stock in the UK right now. Checked every 15 minutes (rpilocator.com).</p>{{ end }}
+            {{ else }}<p class="color-negative size-h6">Stock feed unavailable: {{ .JSON.String "stock.err" }}</p>{{ end }}
+
+
+        - type: custom-api
+          title: Discogs
+          title-url: https://www.discogs.com
+          cache: 10m
+          url: http://${HOST_SVC}:3005/api/shopping/summary
+          template: |
+
+            {{ if .JSON.Bool "discogs.ok" }}
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "discogs.items" }}</div><div class="size-h6">RELEASES</div></div>
+              <div><div class="size-h3 color-highlight">&pound;{{ .JSON.Int "discogs.value_median" | formatNumber }}</div><div class="size-h6">MEDIAN VALUE</div></div>
+              <div><div class="size-h3 {{ if gt (.JSON.Int "discogs.wantlist") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "discogs.wantlist" }}</div><div class="size-h6">WANTLIST</div></div>
+            </div>
+            <p class="size-h6 color-subdue margin-bottom-10">Collection estimated between &pound;{{ .JSON.Int "discogs.value_min" | formatNumber }} (minimum) and &pound;{{ .JSON.Int "discogs.value_max" | formatNumber }} (maximum), by Discogs marketplace data.</p>
+            {{ if gt (len (.JSON.Array "discogs.wants")) 0 }}
+            <div class="size-h6 color-primary margin-bottom-5">WANTLIST &middot; CHEAPEST FOR SALE NOW</div>
+            <ul class="list list-gap-4 size-h6 margin-bottom-10">
+            {{ range .JSON.Array "discogs.wants" }}
+              <li class="flex justify-between gap-10"><a class="color-highlight text-truncate" href="{{ .String "url" }}" target="_blank">{{ .String "artist" }} &ndash; {{ .String "title" }}</a><span class="shrink-0">{{ if gt (.Float "lowest") 0.0 }}&pound;{{ printf "%.2f" (.Float "lowest") }} <span class="color-subdue">({{ .Int "for_sale" }})</span>{{ else }}<span class="color-subdue">none for sale</span>{{ end }}</span></li>
+            {{ end }}
+            </ul>
+            {{ else }}<p class="size-h6 color-subdue margin-bottom-10">Your Discogs wantlist is empty. Add releases to it on Discogs and their cheapest marketplace price will appear here.</p>{{ end }}
+            <div class="size-h6 color-subdue margin-bottom-5">RECENTLY ADDED</div>
+            <div class="wb-strip">
+            {{ range .JSON.Array "discogs.recent" }}
+              <div class="wb-card square" style="flex-basis:7rem"><a href="{{ .String "url" }}" target="_blank">
+                <img src="{{ .String "thumb" }}" alt="" loading="lazy">
+                <div class="wb-title">{{ .String "title" }}</div><div class="wb-sub">{{ .String "artist" }}{{ if ne (.String "year") "" }} &middot; {{ .String "year" }}{{ end }}</div>
+              </a></div>
+            {{ end }}
+            </div>
+            <p class="size-h6 margin-top-10"><a class="color-subdue" href="{{ .JSON.String "discogs.profile_url" }}" target="_blank">Open collection on Discogs</a></p>
+            {{ else if .JSON.Bool "discogs.configured" }}<p class="color-negative size-h6">Discogs: {{ .JSON.String "discogs.err" }}</p>
+            {{ else }}<p class="color-subdue size-h6">Add DISCOGS_TOKEN to the server .env to see your collection here.</p>{{ end }}
+
+
+        - type: html
+          title: Purchases and spend
+          source: |
+            <div class="widget-header"><h2 class="uppercase">Purchases and spend</h2></div>
+            <div data-wb="shop-spend" data-wb-noindex></div>
+

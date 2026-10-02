@@ -1,0 +1,31 @@
+# changedetection.io: price and restock watching for the Shopping page (data: ./datastore). Browser sidecar renders JavaScript shops.
+services:
+  changedetection:
+    image: ghcr.io/dgtlmoon/changedetection.io:latest
+    container_name: changedetection
+    hostname: changedetection
+    ports:
+      - "5100:5000"
+    environment:
+      - TZ=Europe/London
+      - BASE_URL=http://192.168.1.110:5100
+      - PLAYWRIGHT_DRIVER_URL=ws://browser-chrome:3000
+      - HIDE_REFERER=true
+    volumes:
+      - ./datastore:/datastore
+    depends_on:
+      - browser-chrome
+    mem_limit: 768m
+    restart: unless-stopped
+  browser-chrome:
+    image: dgtlmoon/sockpuppetbrowser:latest
+    container_name: changedetection-browser
+    hostname: browser-chrome
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1080
+      - MAX_CONCURRENT_CHROME_PROCESSES=3
+    mem_limit: 2g
+    restart: unless-stopped

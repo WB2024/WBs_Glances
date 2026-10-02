@@ -17,9 +17,9 @@ trap 'rm -rf "$TMP"' EXIT
 echo "==> pulling the live config from $HOST"
 ssh "$HOST" 'cd / && tar -cf - \
   --exclude=opt/glance/legacy --exclude=opt/glance/data/cache --exclude=opt/glance/data/covers \
-  --exclude=opt/glance/assets/favicons --exclude=opt/glance/.env --exclude=opt/glance/glance.env \
+  --exclude=opt/glance/assets/favicons --exclude=opt/glance/.env --exclude=opt/glance/glance.env --exclude=opt/stacks/changedetection/datastore \
   --exclude="*.bak*" --exclude=__pycache__ \
-  opt/glance opt/glance-admin opt/stacks/glance opt/stacks/glance-admin opt/stacks/glance-agent 2>/dev/null' | tar -xf - -C "$TMP"
+  opt/glance opt/glance-admin opt/stacks/glance opt/stacks/glance-admin opt/stacks/glance-agent opt/stacks/changedetection 2>/dev/null' | tar -xf - -C "$TMP"
 ssh "$HOST" 'cat /opt/glance/.env' > "$TMP/master.env"
 
 echo "==> sanitising"

@@ -1,6 +1,6 @@
 # WB's Glances
 
-A self-hosted homelab dashboard built on [Glance](https://github.com/glanceapp/glance): twelve tabs, a small companion service that
+A self-hosted homelab dashboard built on [Glance](https://github.com/glanceapp/glance): thirteen tabs, a small companion service that
 adds the things Glance does not do (editable bookmarks, notes, a to-do list, add/remove video channels and news feeds, cross-tab search,
 cached summaries), PIN-locked "private" widgets, and read-only host agents. Everything is plain YAML, a few Python scripts and
 three small front-end files, and **this repo is both the showcase and the backup**: clone it, fill in a `.env`, run one script.
@@ -16,7 +16,7 @@ three small front-end files, and **this repo is both the showcase and the backup
 
 | | |
 |---|---|
-| **12 tabs** | Home, Downloads, Audio, Video, Infra, Networking, Tools, Dev, Cameras, News Feeds, Video News Feed, Bookmarks |
+| **13 tabs** | Home, Downloads, Audio, Video, Infra, Networking, Tools, Dev, Shopping, Cameras, News Feeds, Video News Feed, Bookmarks |
 | **Find** | one search box that finds anything on *any* tab, jumps to it and highlights the match (`/` focuses it) |
 | **Per-engine search bars** | SearXNG, Startpage, YouTube, Reddit, MusicBrainz, GitHub, and more: one click each |
 | **Notes and to-do** | saved on the server, so they follow you between devices |
@@ -82,6 +82,15 @@ appear only inside a PIN-locked widget** (and are never written to disk by glanc
 you get public data only.
 
 ![Dev](images/14-dev.jpg)
+
+### Shopping
+A shopping tab for tech, music, home, DIY and tools. **One search box across 20 UK shops** (eBay, Amazon, CeX, Scan, CCL, Screwfix, Toolstation, B&Q, Discogs, Vinted and more); a **shopping list**
+and a **wishlist** with target prices that live on the server (so every device sees the same lists); **gift ideas in a PIN-locked widget**; **deals** from HotUKDeals and r/UKDeals with **alert words** you
+choose (matching deals float to the top); **saved eBay searches** through eBay's official API; **price and stock watches** powered by a changedetection.io container (a wishlist item gets a one-click
+"Watch price" and shows when it falls to your target); **Raspberry Pi stock** for the UK; your **Discogs** collection value, recent additions and wantlist prices; and a **purchases and spend** log
+with a six-month chart by category. Shops that block automated requests (Currys and Scan answer 403 to scripts) are shown as blocked rather than failing silently.
+
+![Shopping](images/15-shopping.jpg)
 
 ### Cameras
 Live view from Frigate (a still image, upgraded to a stream only while the tile is on screen and the tab is visible), recent detections, and **search**:
@@ -183,6 +192,7 @@ What to put in `.env` (see `opt/glance/.env.example` for every name):
 | Service keys | one key per service the pages use (Jellyfin, Navidrome, SABnzbd, Radarr, Sonarr, Lidarr, Prowlarr, Seerr, slskd, Pi-hole, Audiobookshelf, Immich, the two private apps) |
 | Infra | `PROXMOX_USER` / `PROXMOX_PASSWORD` (an API **token** with the `PVEAuditor` role), `PBS_PASSWORD`, `TAILSCALE_OAUTH_ID/SECRET` (read-only), `NPM_USER` / `NPM_PASS` (a view-only user) |
 | Tools | `BOOKSTACK_TOKEN`, `PAPERLESS_TOKEN`, `FORGEJO_TOKEN` |
+| Shopping | `DISCOGS_TOKEN` (Discogs > Settings > Developers), `EBAY_APP_ID` + `EBAY_CERT_ID` (free keys from developer.ebay.com, production keyset; without them the eBay section just explains what is missing), `CHANGEDETECTION_URL` / `CHANGEDETECTION_KEY` (the key is filled in by `install.sh`) |
 | Dev | `GITHUB_USER`, `GITHUB_TOKEN`: create a **fine-grained** personal access token (GitHub > Settings > Developer settings), repository access *All repositories*, permissions **read-only**: Metadata, Contents, Issues, Pull requests, Actions. Nothing here ever writes to GitHub. |
 | Lock | `GLANCE_PIN` |
 | Agents | `AGENT_TOKEN_SVC`, `AGENT_TOKEN_JELLY`, `AGENT_TOKEN_DEVUAN` (any long random strings; the same value goes on the matching host) |
