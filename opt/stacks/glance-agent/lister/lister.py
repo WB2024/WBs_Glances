@@ -9,8 +9,10 @@ import hmac
 import http.client
 import json
 import os
+import re
 import socket
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 SOCK = os.environ.get("DOCKER_SOCKET", "/var/run/docker.sock")
@@ -71,6 +73,34 @@ def cpu_temp():
     return round(best, 1) if best is not None else None
 
 
+NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
+
+
+def one_stats(name):
+    """CPU % and memory of one running container (a single stats sample). Returns only numbers, never environment or config."""
+    d = docker_get("/containers/%s/stats?stream=false" % name)
+    cpu, pre = d.get("cpu_stats") or {}, d.get("precpu_stats") or {}
+    dc = (cpu.get("cpu_usage") or {}).get("total_usage", 0) - (pre.get("cpu_usage") or {}).get("total_usage", 0)
+    ds = (cpu.get("system_cpu_usage") or 0) - (pre.get("system_cpu_usage") or 0)
+    ncpu = cpu.get("online_cpus") or len((cpu.get("cpu_usage") or {}).get("percpu_usage") or []) or 1
+    pct = round(dc / ds * ncpu * 100, 1) if ds > 0 and dc >= 0 else 0.0
+    mem = d.get("memory_stats") or {}
+    used = mem.get("usage", 0) - ((mem.get("stats") or {}).get("inactive_file") or (mem.get("stats") or {}).get("cache") or 0)
+    return {"name": name, "cpu_pct": pct, "mem_mb": int(max(used, 0) / 2**20), "mem_limit_mb": int((mem.get("limit") or 0) / 2**20)}
+
+
+def stats(names):
+    names = [n for n in names if NAME_RE.fullmatch(n)][:24]
+    out = []
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        for n, fut in [(n, ex.submit(one_stats, n)) for n in names]:
+            try:
+                out.append(fut.result(timeout=20))
+            except Exception:
+                out.append({"name": n, "cpu_pct": -1, "mem_mb": -1})
+    return {"host": HOSTNAME, "stats": out}
+
+
 def snapshot():
     out = []
     for c in docker_get("/containers/json?all=1"):
@@ -112,13 +142,17 @@ class H(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0].rstrip("/")
         if path == "/health":
             return self._send(200, {"ok": True})
-        if path != "/containers":
+        if path not in ("/containers", "/stats"):
             return self._send(404, {"error": "not found"})
         auth = self.headers.get("Authorization", "")
         given = auth[7:] if auth.lower().startswith("bearer ") else self.headers.get("X-Token", "")
         if not hmac.compare_digest(given.encode(), TOKEN.encode()):
             return self._send(401, {"error": "unauthorized"})
         try:
+            if path == "/stats":
+                q = self.path.split("?", 1)[1] if "?" in self.path else ""
+                names = (re.search(r"(?:^|&)names=([^&]*)", q) or [None, ""])[1].split(",")
+                return self._send(200, stats([n for n in names if n]))
             self._send(200, snapshot())
         except Exception as exc:
             print("error:", exc, flush=True)

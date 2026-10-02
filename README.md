@@ -66,8 +66,11 @@ check of every backend. Problems always show; **all proxy hosts** are in a colla
 ![Networking](images/08-networking.jpg)
 
 ### Tools
-Rich cards for the self-hosted tools (Paperless-ngx, Forgejo, BookStack, RustyDisc), a tile for every other service with a health check, and
-a "latest releases" column built from GitHub's public Atom feeds (no API token, no rate limit).
+RustyDisc (CD ripping), Paperless-ngx and BookStack, and a **rich card for each small tool**, built from the tool's own API plus its container's uptime, CPU and RAM:
+**Kiwix** (offline libraries by subject, biggest libraries, every library linked), **SearXNG** (a search box, engines on per category, plugins, safe-search),
+**NOMAD** (service list with update notices, host CPU/RAM/storage/swap), **Kolibri** (users, learners, channels), **Stirling PDF** (tools enabled, uptime, update notice),
+**Flatnotes** (note counts only, never titles), **Homebox** (installed vs latest version), and the remote apps and password vault. A "latest releases" column is built from GitHub's
+public Atom feeds (no API token, no rate limit). The developer tools (CyberChef, IT Tools, Excalidraw, Dozzle, Termix) live on the Dev tab.
 
 ![Tools](images/09-tools.jpg)
 

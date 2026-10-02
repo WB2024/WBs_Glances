@@ -403,3 +403,11 @@ body {
 .wb-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr)); gap: 1rem; }
 .wb-results .wb-card { flex: none; min-width: 0; }
 .wb-results .wb-card img { aspect-ratio: 16 / 10; }
+
+/* ══ Tools: mini search form and container line ═════════════════════════════ */
+.wb-miniform { display: flex; gap: 0.5rem; }
+.wb-miniform input { flex: 1; min-width: 0; padding: 0.5rem 0.8rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; outline: none; }
+.wb-miniform input:focus { border-color: var(--color-primary); }
+.wb-miniform button { padding: 0.5rem 1rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; cursor: pointer; }
+.wb-miniform button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.wb-ctr { padding-top: 0.6rem; border-top: 1px solid var(--color-widget-content-border); }

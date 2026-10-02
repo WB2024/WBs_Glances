@@ -112,7 +112,7 @@ def t_nomad():
 
 def t_homebox():
     up, code, ms = _up(8470)
-    return {"up": up, "detail": "answering" if up else "not running (crash loop: needs HBOX_AUTH_API_KEY_PEPPER)"}
+    return {"up": up, "detail": "answering" if up else "not responding"}
 
 
 def t_vaultwarden():
@@ -207,6 +207,198 @@ def bookstack():
         return {"up": False, "err": str(exc)[:80]}
 
 
+# --------------------------------------------------------------------------- rich cards for the small tools (Tools page)
+import html as _html
+
+_CONTAINERS = {"kiwix": "nomad_kiwix_server", "kolibri": "nomad_kolibri_2", "nomad": "nomad_admin", "searxng": "searxng", "flatnotes": "nomad_flatnotes",
+               "stirling": "nomad_stirling_pdf", "homebox": "nomad_homebox", "picard": "picard-web", "firefox": "browser", "vaultwarden": "vaultwarden"}
+
+
+def _lister(path):
+    tok = os.environ.get("TOKEN_SERVICES", "")
+    return _get("http://%s:27974%s" % (HOST, path), {"Authorization": "Bearer " + tok}, timeout=25)[2]
+
+
+def _container_info():
+    """Per-tool container facts from the read-only lister: state, uptime text, image tag, CPU %, RAM MB."""
+    try:
+        cmap = {c["name"]: c for c in _lister("/containers")["containers"]}
+    except Exception:
+        return {}
+    stats = {}
+    try:
+        running = [n for n in _CONTAINERS.values() if cmap.get(n, {}).get("state") == "running"]
+        stats = {s["name"]: s for s in _lister("/stats?names=" + ",".join(running)).get("stats", [])}
+    except Exception:
+        pass            # an older lister without /stats: the cards simply omit CPU and RAM
+    out = {}
+    for key, name in _CONTAINERS.items():
+        c = cmap.get(name)
+        if not c:
+            out[key] = {"found": False}
+            continue
+        s = stats.get(name, {})
+        image = c.get("image", "")
+        out[key] = {"found": True, "running": c["state"] == "running", "state": c["state"], "status": c.get("status", ""), "health": c.get("health", ""),
+                    "image": image.split("/")[-1], "tag": image.rsplit(":", 1)[-1] if ":" in image.split("/")[-1] else "latest",
+                    "cpu_pct": s.get("cpu_pct", -1), "mem_mb": s.get("mem_mb", -1)}
+    return out
+
+
+def _kiwix():
+    try:
+        _, _, b, _ = _get("http://%s:8090/catalog/v2/entries?count=500" % HOST, raw=True, timeout=15)
+        ns = {"a": "http://www.w3.org/2005/Atom", "dc": "http://purl.org/dc/terms/"}
+        root = ET.fromstring(b)
+        libs = []
+        for e in root.findall("a:entry", ns):
+            def t(tag):
+                x = e.find(tag, ns) if ":" in tag else e.find("{http://www.w3.org/2005/Atom}" + tag)
+                return (x.text or "") if x is not None else ""
+            link = next((l.get("href") for l in e.findall("a:link", ns) if l.get("type") == "text/html"), "")
+            name = t("name") if e.find("{http://www.w3.org/2005/Atom}name") is not None else ""
+            libs.append({"title": _html.unescape(t("title")), "name": name, "articles": int(t("articleCount") or 0), "media": int(t("mediaCount") or 0),
+                         "updated": t("updated")[:10], "lang": t("language")[:3], "url": "http://%s:8090%s" % (LINK, link)})
+    except Exception as exc:
+        return {"up": False, "err": str(exc)[:80]}
+
+    def cat(x):
+        n = (x["name"] + " " + x["title"]).lower()
+        for label, keys in (("Stack Exchange Q&A", ("stackexchange",)), ("LibreTexts", ("libretexts",)), ("Medical and health", ("medlineplus", "nhs", "medicine", "medical", "pathology", "military", "travelers")),
+                            ("Wikipedia and wikis", ("wikipedia", "wikibooks", "wikiversity")), ("Developer docs", ("devdocs", "freecodecamp")),
+                            ("Books and talks", ("gutenberg", "ted")), ("Home, cooking and prepping", ("cook", "prep", "food", "foss", "diy", "ifixit", "zimgit"))):
+            if any(k in n for k in keys):
+                return label
+        return "Other"
+    cats = {}
+    for x in libs:
+        c = cats.setdefault(cat(x), {"name": cat(x), "count": 0, "articles": 0})
+        c["count"] += 1
+        c["articles"] += x["articles"]
+    biggest = sorted(libs, key=lambda x: -x["articles"])[:6]
+    return {"up": True, "libraries": len(libs), "articles": sum(x["articles"] for x in libs), "media": sum(x["media"] for x in libs),
+            "newest": max((x["updated"] for x in libs), default=""), "categories": sorted(cats.values(), key=lambda c: -c["articles"]),
+            "top": [{"title": x["title"], "articles": x["articles"], "url": x["url"]} for x in biggest],
+            "all": [{"title": x["title"], "articles": x["articles"], "url": x["url"], "updated": x["updated"]} for x in sorted(libs, key=lambda x: x["title"].lower())]}
+
+
+def _kolibri():
+    try:
+        info = _get("http://%s:8310/api/public/info/" % HOST)[2]
+        fac = (_get("http://%s:8310/api/auth/facility/" % HOST)[2] or [{}])[0]
+        try:
+            channels = len(_get("http://%s:8310/api/content/channel/" % HOST)[2])
+        except Exception:
+            channels = 0
+        return {"up": True, "version": info.get("kolibri_version", ""), "device": info.get("device_name", ""), "facility": fac.get("name", ""),
+                "users": fac.get("num_users", 0), "learners": fac.get("num_learners", 0), "classrooms": fac.get("num_classrooms", 0), "channels": channels,
+                "signup": bool((fac.get("dataset") or {}).get("learner_can_sign_up")), "synced": bool(fac.get("last_successful_sync"))}
+    except Exception as exc:
+        return {"up": False, "err": str(exc)[:80]}
+
+
+def _nomad():
+    try:
+        svcs = _get("http://%s:8500/api/system/services" % HOST)[2]
+        info = _get("http://%s:8500/api/system/info" % HOST, timeout=12)[2]
+    except Exception as exc:
+        return {"up": False, "err": str(exc)[:80]}
+    mem = info.get("mem", {})
+    total = float(mem.get("total") or 1)
+    fs = next((f for f in info.get("fsSize", []) if f.get("mount") == "/app/storage"), {})
+    root = next((f for f in info.get("fsSize", []) if f.get("mount") == "/"), {})
+    services = [{"name": s.get("friendly_name") or s.get("service_name"), "by": s.get("powered_by") or "", "running": s.get("status") == "running",
+                 "status": s.get("status") or "", "update": s.get("available_update_version") or "", "image": (s.get("container_image") or "").split("/")[-1],
+                 "category": s.get("category") or ""} for s in svcs if s.get("installed")]
+    return {"up": True, "services": services, "running": sum(1 for s in services if s["running"]), "updates": sum(1 for s in services if s["update"]),
+            "cpu_brand": (info.get("cpu", {}).get("brand") or "").replace("Core™ ", ""), "cores": info.get("cpu", {}).get("cores", 0),
+            "load_pct": int(round(float(info.get("currentLoad", {}).get("currentLoad") or 0))),
+            "mem_pct": int(round(100 - float(mem.get("available") or 0) / total * 100)), "mem_gb": round(total / 2**30),
+            "swap_pct": int(round(float(mem.get("swapused") or 0) / float(mem.get("swaptotal") or 1) * 100)),
+            "uptime_d": round(float((info.get("uptime") or {}).get("uptime") or 0) / 86400, 1), "kernel": (info.get("os") or {}).get("kernel", ""),
+            "storage_pct": int(round(float(fs.get("use") or 0))), "storage_tb": round(float(fs.get("size") or 0) / 1e12, 1),
+            "storage_used_tb": round(float(fs.get("used") or 0) / 1e12, 1), "root_pct": int(round(float(root.get("use") or 0))),
+            "gpu_ok": bool((info.get("gpuHealth") or {}).get("ollamaGpuAccessible"))}
+
+
+def _searxng():
+    try:
+        d = _get("http://%s:8888/config" % HOST, timeout=15)[2]
+    except Exception as exc:
+        return {"up": False, "err": str(exc)[:80]}
+    engines = d.get("engines", [])
+    on = [e for e in engines if e.get("enabled")]
+    cats = {}
+    for e in on:
+        for c in e.get("categories", []):
+            cats[c] = cats.get(c, 0) + 1
+    plugins = [p.get("name") for p in d.get("plugins", []) if p.get("enabled")]
+    safe = {0: "off", 1: "moderate", 2: "strict"}.get(d.get("safe_search"), str(d.get("safe_search")))
+    return {"up": True, "engines": len(engines), "enabled": len(on), "categories": [{"name": k, "count": v} for k, v in sorted(cats.items(), key=lambda kv: -kv[1])[:9]],
+            "plugins": plugins[:10], "version": str(d.get("version", "")).split("+")[0], "name": d.get("instance_name", ""), "safe": safe,
+            "autocomplete": d.get("autocomplete") or "off", "locale": d.get("default_locale") or "auto",
+            "top_engines": [{"name": e["name"], "shortcut": e.get("shortcut", "")} for e in on if "general" in e.get("categories", [])][:14]}
+
+
+def _flatnotes():
+    try:
+        notes = _get("http://%s:8200/api/search?term=*&sort=lastModified&order=desc&limit=500" % HOST)[2]
+        tags = _get("http://%s:8200/api/tags" % HOST)[2]
+        notes = notes if isinstance(notes, list) else []
+        now = time.time()
+        mods = [float(n.get("lastModified") or 0) for n in notes]
+        return {"up": True, "notes": len(notes), "tags": len(tags) if isinstance(tags, list) else 0,
+                "last_h": int((now - max(mods)) / 3600) if mods else -1, "week": sum(1 for m in mods if m > now - 7 * 86400)}
+    except Exception as exc:
+        return {"up": False, "err": str(exc)[:80]}
+
+
+def _stirling():
+    try:
+        st = _get("http://%s:8400/api/v1/info/status" % HOST)[2]
+        up = _get("http://%s:8400/api/v1/info/uptime" % HOST, raw=True)[2].decode().strip()
+        av = _get("http://%s:8400/api/v1/config/endpoints-availability" % HOST, timeout=10)[2]
+        total = len(av) if isinstance(av, dict) else 0
+        on = sum(1 for v in av.values() if v.get("enabled")) if isinstance(av, dict) else 0
+        return {"up": st.get("status") == "UP", "version": st.get("version", ""), "uptime": up, "tools": total, "enabled": on}
+    except Exception as exc:
+        return {"up": False, "err": str(exc)[:80]}
+
+
+def _homebox():
+    try:
+        d = _get("http://%s:8470/api/v1/status" % HOST)[2]
+        cur = (d.get("build") or {}).get("version", "")
+        latest = (d.get("latest") or {}).get("version", "")
+        return {"up": bool(d.get("health")), "version": cur, "latest": latest, "update": bool(latest) and latest != cur,
+                "released": ((d.get("latest") or {}).get("date") or "")[:10], "message": d.get("message", "")}
+    except Exception as exc:
+        return {"up": False, "err": str(exc)[:80]}
+
+
+def cards():
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futs = {k: ex.submit(f) for k, f in (("kiwix", _kiwix), ("kolibri", _kolibri), ("nomad", _nomad), ("searxng", _searxng), ("flatnotes", _flatnotes),
+                                             ("stirling", _stirling), ("homebox", _homebox), ("containers", _container_info))}
+        out = {}
+        for k, fut in futs.items():
+            try:
+                out[k] = fut.result(timeout=40)
+            except Exception as exc:
+                out[k] = {"up": False, "err": str(exc)[:80]}
+    ctr = out.pop("containers", {}) or {}
+    by = {"stirling": "Stirling-Tools", "flatnotes": "FlatNotes", "homebox": "Homebox", "kiwix": "Kiwix", "kolibri": "Kolibri"}
+    services = (out.get("nomad") or {}).get("services", [])
+    for key, powered in by.items():
+        svc = next((s for s in services if s.get("by") == powered), None)
+        if svc and isinstance(out.get(key), dict):
+            out[key]["update"] = svc.get("update", "")
+    for k, v in out.items():
+        v["ctr"] = ctr.get(k, {"found": False})
+    out["remote"] = {"ctr_picard": ctr.get("picard", {"found": False}), "ctr_firefox": ctr.get("firefox", {"found": False}), "ctr_vault": ctr.get("vaultwarden", {"found": False})}
+    return out
+
+
 DEV_KEYS = ("cyberchef", "ittools", "excalidraw", "dozzle", "termix")      # shown on the Dev page instead of the Tools page
 
 
@@ -216,7 +408,8 @@ def build():
         p, bk = ex.submit(paperless), ex.submit(bookstack)
         tiles = [x for x in all_tiles if x["key"] not in DEV_KEYS]
         dev = sorted([x for x in all_tiles if x["key"] in DEV_KEYS], key=lambda x: DEV_KEYS.index(x["key"]))
-        out = {"at": int(time.time()), "tiles": tiles, "dev_tiles": dev, "paperless": p.result(), "bookstack": bk.result()}
+        c = ex.submit(cards)
+        out = {"at": int(time.time()), "tiles": tiles, "dev_tiles": dev, "paperless": p.result(), "bookstack": bk.result(), "cards": c.result()}
     out["up"] = sum(1 for t in tiles if t["up"])
     out["down"] = sum(1 for t in tiles if not t["up"])
     return out

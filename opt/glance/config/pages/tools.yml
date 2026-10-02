@@ -98,30 +98,181 @@
                 {{ else }}<p class="color-subdue">BookStack is not responding.</p>{{ end }}
 
 
-        - type: custom-api
-          title: Other tools
-          title-url: http://${HOST_SVC}:5001
-          cache: 2m
-          url: http://${HOST_SVC}:3005/api/tools/summary
-          template: |
+        - type: split-column
+          max-columns: 3
+          widgets:
+            - type: custom-api
+              title: Information library (Kiwix)
+              title-url: http://${HOST_SVC}:8090
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
 
-            <div class="wb-stats margin-bottom-10">
-              <div><div class="size-h3 color-positive">{{ .JSON.Int "up" }}</div><div class="size-h6">RESPONDING</div></div>
-              <div><div class="size-h3 {{ if gt (.JSON.Int "down") 0 }}color-negative{{ else }}color-highlight{{ end }}">{{ .JSON.Int "down" }}</div><div class="size-h6">DOWN</div></div>
-            </div>
-            {{ $g := "" }}
-            {{ range .JSON.Array "tiles" }}
-              {{ if ne (.String "group") $g }}{{ if ne $g "" }}</div>{{ end }}<div class="size-h6 color-subdue margin-top-10 margin-bottom-5">{{ .String "group" }}</div><div class="wb-tiles">{{ $g = .String "group" }}{{ end }}
-              <div class="wb-tile{{ if not (.Bool "up") }} wb-tile-bad{{ end }}">
-                <span class="{{ if not (.Bool "up") }}color-negative{{ else if .Bool "warn" }}color-primary{{ else }}color-positive{{ end }}">&#9679;</span>
-                <div class="wb-tile-main">
-                  <div class="text-truncate"><a class="color-highlight" href="{{ .String "url" }}" target="_blank">{{ .String "name" }}</a></div>
-                  <div class="size-h6 color-subdue text-truncate">{{ .String "detail" }}</div>
-                </div>
-              </div>
-            {{ end }}
-            </div>
+                {{ if .JSON.Bool "cards.kiwix.up" }}
+                <div class="wb-stats margin-bottom-10"><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.kiwix.libraries" }}</div><div class="size-h6">LIBRARIES</div></div><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.kiwix.articles" | formatNumber }}</div><div class="size-h6">ARTICLES</div></div><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.kiwix.media" | formatNumber }}</div><div class="size-h6">MEDIA FILES</div></div><div><div class="size-h3 color-highlight">{{ .JSON.String "cards.kiwix.newest" }}</div><div class="size-h6">NEWEST</div></div></div>
+                <div class="size-h6 color-subdue margin-bottom-5">BY SUBJECT</div>
+                <ul class="list list-gap-4 size-h6 margin-bottom-10">
+                {{ range .JSON.Array "cards.kiwix.categories" }}
+                  <li class="flex justify-between gap-10"><span>{{ .String "name" }}</span><span class="color-subdue">{{ .Int "count" }} libraries &middot; {{ .Int "articles" | formatNumber }} articles</span></li>
+                {{ end }}
+                </ul>
+                <div class="size-h6 color-subdue margin-bottom-5">BIGGEST</div>
+                <ul class="list list-gap-4 size-h6">
+                {{ range .JSON.Array "cards.kiwix.top" }}
+                  <li class="flex justify-between gap-10"><a class="color-highlight text-truncate" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a><span class="color-subdue shrink-0">{{ .Int "articles" | formatNumber }}</span></li>
+                {{ end }}
+                </ul>
+                <details class="wb-fold margin-top-10">
+                  <summary>All {{ .JSON.Int "cards.kiwix.libraries" }} libraries</summary>
+                  <ul class="list list-gap-4 size-h6 margin-top-10">
+                  {{ range .JSON.Array "cards.kiwix.all" }}
+                    <li class="flex justify-between gap-10"><a class="color-highlight text-truncate" href="{{ .String "url" }}" target="_blank">{{ .String "title" }}</a><span class="color-subdue shrink-0">{{ .Int "articles" | formatNumber }}</span></li>
+                  {{ end }}
+                  </ul>
+                </details>
 
+                <div class="size-h6 color-subdue margin-top-15 wb-ctr">{{ if .JSON.Bool "cards.kiwix.ctr.running" }}<span class="color-positive">&#9679;</span> container {{ .JSON.String "cards.kiwix.ctr.status" }}{{ if ge (.JSON.Float "cards.kiwix.ctr.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.kiwix.ctr.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.kiwix.ctr.mem_mb" }} MB{{ end }}{{ if ne (.JSON.String "cards.kiwix.ctr.tag") "latest" }} &middot; {{ .JSON.String "cards.kiwix.ctr.tag" }}{{ end }}{{ else }}<span class="color-negative">&#9679;</span> container {{ .JSON.String "cards.kiwix.ctr.state" }}{{ if ne (.JSON.String "cards.kiwix.ctr.status") "" }} &middot; {{ .JSON.String "cards.kiwix.ctr.status" }}{{ end }}{{ end }}</div>
+                {{ else }}<p class="color-negative">Kiwix is not responding{{ if ne (.JSON.String "cards.kiwix.err") "" }}: {{ .JSON.String "cards.kiwix.err" }}{{ end }}</p>{{ end }}
+
+            - type: custom-api
+              title: SearXNG
+              title-url: http://searxng.wbhomelab
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "cards.searxng.up" }}
+                <form action="http://searxng.wbhomelab/search" method="get" target="_blank" class="wb-miniform margin-bottom-15">
+                  <input type="search" name="q" placeholder="Search privately with SearXNG..." autocomplete="off"><button type="submit">Search</button>
+                </form>
+                <div class="wb-stats margin-bottom-10"><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.searxng.enabled" }}<span class="size-h6"> / {{ .JSON.Int "cards.searxng.engines" }}</span></div><div class="size-h6">ENGINES ON</div></div><div><div class="size-h3 color-highlight">{{ len (.JSON.Array "cards.searxng.categories") }}</div><div class="size-h6">CATEGORIES</div></div><div><div class="size-h3 color-highlight">{{ len (.JSON.Array "cards.searxng.plugins") }}</div><div class="size-h6">PLUGINS</div></div><div><div class="size-h3 color-highlight">{{ .JSON.String "cards.searxng.version" }}</div><div class="size-h6">VERSION</div></div></div>
+                <div class="size-h6 color-subdue margin-bottom-5">ENGINES ENABLED PER CATEGORY</div>
+                <div class="wb-pillrow margin-bottom-10">{{ range .JSON.Array "cards.searxng.categories" }}<span class="wb-pill">{{ .String "name" }} {{ .Int "count" }}</span>{{ end }}</div>
+                <div class="size-h6 color-subdue margin-bottom-5">GENERAL SEARCH ENGINES</div>
+                <div class="wb-pillrow margin-bottom-10">{{ range .JSON.Array "cards.searxng.top_engines" }}<span class="wb-pill" title="shortcut !{{ .String "shortcut" }}">{{ .String "name" }}</span>{{ end }}</div>
+                <ul class="list list-gap-4 size-h6">
+                  <li class="flex justify-between gap-10"><span class="color-subdue">plugins</span><span class="text-truncate">{{ range .JSON.Array "cards.searxng.plugins" }}{{ .String "" }} {{ end }}</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">safe search</span><span>{{ .JSON.String "cards.searxng.safe" }}</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">autocomplete</span><span>{{ .JSON.String "cards.searxng.autocomplete" }}</span></li>
+                </ul>
+
+                <div class="size-h6 color-subdue margin-top-15 wb-ctr">{{ if .JSON.Bool "cards.searxng.ctr.running" }}<span class="color-positive">&#9679;</span> container {{ .JSON.String "cards.searxng.ctr.status" }}{{ if ge (.JSON.Float "cards.searxng.ctr.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.searxng.ctr.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.searxng.ctr.mem_mb" }} MB{{ end }}{{ if ne (.JSON.String "cards.searxng.ctr.tag") "latest" }} &middot; {{ .JSON.String "cards.searxng.ctr.tag" }}{{ end }}{{ else }}<span class="color-negative">&#9679;</span> container {{ .JSON.String "cards.searxng.ctr.state" }}{{ if ne (.JSON.String "cards.searxng.ctr.status") "" }} &middot; {{ .JSON.String "cards.searxng.ctr.status" }}{{ end }}{{ end }}</div>
+                {{ else }}<p class="color-negative">SearXNG is not responding{{ if ne (.JSON.String "cards.searxng.err") "" }}: {{ .JSON.String "cards.searxng.err" }}{{ end }}</p>{{ end }}
+
+            - type: custom-api
+              title: NOMAD
+              title-url: http://${HOST_SVC}:8500
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "cards.nomad.up" }}
+                <div class="wb-stats margin-bottom-10"><div><div class="size-h3 color-positive">{{ .JSON.Int "cards.nomad.running" }}<span class="size-h6"> / {{ len (.JSON.Array "cards.nomad.services") }}</span></div><div class="size-h6">SERVICES UP</div></div><div><div class="size-h3 {{ if gt (.JSON.Int "cards.nomad.updates") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "cards.nomad.updates" }}</div><div class="size-h6">UPDATES</div></div><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.nomad.load_pct" }}%</div><div class="size-h6">HOST CPU</div></div><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.nomad.mem_pct" }}%</div><div class="size-h6">HOST RAM</div></div></div>
+                <ul class="list list-gap-4 size-h6 margin-bottom-10">
+                {{ range .JSON.Array "cards.nomad.services" }}
+                  <li class="flex justify-between gap-10"><span class="text-truncate"><span class="{{ if .Bool "running" }}color-positive{{ else }}color-negative{{ end }}">&#9679;</span> {{ .String "name" }} <span class="color-subdue">&middot; {{ .String "by" }}</span></span><span class="shrink-0">{{ if ne (.String "update") "" }}<span class="color-primary">update {{ .String "update" }}</span>{{ else }}<span class="color-subdue">{{ .String "status" }}</span>{{ end }}</span></li>
+                {{ end }}
+                </ul>
+                <div class="flex justify-between size-h6"><span class="color-subdue">STORAGE &middot; {{ .JSON.Float "cards.nomad.storage_used_tb" }} / {{ .JSON.Float "cards.nomad.storage_tb" }} TB</span><span>{{ .JSON.Int "cards.nomad.storage_pct" }}%</span></div>
+                <div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.JSON.Int "cards.nomad.storage_pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .JSON.Int "cards.nomad.storage_pct" }}"></div></div>
+                <div class="flex justify-between size-h6"><span class="color-subdue">ROOT DISK</span><span>{{ .JSON.Int "cards.nomad.root_pct" }}%</span></div>
+                <div class="progress-bar margin-bottom-8"><div class="progress-value{{ if gt (.JSON.Int "cards.nomad.root_pct") 85 }} progress-value-notice{{ end }}" style="--percent: {{ .JSON.Int "cards.nomad.root_pct" }}"></div></div>
+                <div class="flex justify-between size-h6"><span class="color-subdue">SWAP</span><span>{{ .JSON.Int "cards.nomad.swap_pct" }}%</span></div>
+                <div class="progress-bar margin-bottom-8"><div class="progress-value" style="--percent: {{ .JSON.Int "cards.nomad.swap_pct" }}"></div></div>
+                <p class="size-h6 color-subdue">{{ .JSON.String "cards.nomad.cpu_brand" }} &middot; {{ .JSON.Int "cards.nomad.cores" }} cores &middot; {{ .JSON.Int "cards.nomad.mem_gb" }} GB &middot; up {{ .JSON.Float "cards.nomad.uptime_d" }} d &middot; kernel {{ .JSON.String "cards.nomad.kernel" }}{{ if .JSON.Bool "cards.nomad.gpu_ok" }} &middot; GPU reachable for AI{{ end }}</p>
+
+                <div class="size-h6 color-subdue margin-top-15 wb-ctr">{{ if .JSON.Bool "cards.nomad.ctr.running" }}<span class="color-positive">&#9679;</span> container {{ .JSON.String "cards.nomad.ctr.status" }}{{ if ge (.JSON.Float "cards.nomad.ctr.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.nomad.ctr.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.nomad.ctr.mem_mb" }} MB{{ end }}{{ if ne (.JSON.String "cards.nomad.ctr.tag") "latest" }} &middot; {{ .JSON.String "cards.nomad.ctr.tag" }}{{ end }}{{ else }}<span class="color-negative">&#9679;</span> container {{ .JSON.String "cards.nomad.ctr.state" }}{{ if ne (.JSON.String "cards.nomad.ctr.status") "" }} &middot; {{ .JSON.String "cards.nomad.ctr.status" }}{{ end }}{{ end }}</div>
+                {{ else }}<p class="color-negative">NOMAD is not responding{{ if ne (.JSON.String "cards.nomad.err") "" }}: {{ .JSON.String "cards.nomad.err" }}{{ end }}</p>{{ end }}
+
+            - type: custom-api
+              title: Education (Kolibri)
+              title-url: http://${HOST_SVC}:8310
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "cards.kolibri.up" }}
+                <div class="wb-stats margin-bottom-10"><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.kolibri.users" }}</div><div class="size-h6">USERS</div></div><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.kolibri.learners" }}</div><div class="size-h6">LEARNERS</div></div><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.kolibri.classrooms" }}</div><div class="size-h6">CLASSROOMS</div></div><div><div class="size-h3 {{ if eq (.JSON.Int "cards.kolibri.channels") 0 }}color-primary{{ else }}color-highlight{{ end }}">{{ .JSON.Int "cards.kolibri.channels" }}</div><div class="size-h6">CHANNELS</div></div></div>
+                <ul class="list list-gap-4 size-h6">
+                  <li class="flex justify-between gap-10"><span class="color-subdue">facility</span><span class="text-truncate">{{ .JSON.String "cards.kolibri.facility" }}</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">device</span><span class="text-truncate">{{ .JSON.String "cards.kolibri.device" }}</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">version</span><span>{{ .JSON.String "cards.kolibri.version" }}</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">learner sign-up</span><span>{{ if .JSON.Bool "cards.kolibri.signup" }}open{{ else }}closed{{ end }}</span></li>
+                  <li class="flex justify-between gap-10"><span class="color-subdue">sync with other devices</span><span>{{ if .JSON.Bool "cards.kolibri.synced" }}synced{{ else }}never{{ end }}</span></li>
+                </ul>
+                {{ if eq (.JSON.Int "cards.kolibri.channels") 0 }}<p class="size-h6 color-primary margin-top-10">No content channels installed yet. Open Kolibri, Device, Channels to import courses and videos.</p>{{ end }}
+
+                <div class="size-h6 color-subdue margin-top-15 wb-ctr">{{ if .JSON.Bool "cards.kolibri.ctr.running" }}<span class="color-positive">&#9679;</span> container {{ .JSON.String "cards.kolibri.ctr.status" }}{{ if ge (.JSON.Float "cards.kolibri.ctr.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.kolibri.ctr.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.kolibri.ctr.mem_mb" }} MB{{ end }}{{ if ne (.JSON.String "cards.kolibri.ctr.tag") "latest" }} &middot; {{ .JSON.String "cards.kolibri.ctr.tag" }}{{ end }}{{ else }}<span class="color-negative">&#9679;</span> container {{ .JSON.String "cards.kolibri.ctr.state" }}{{ if ne (.JSON.String "cards.kolibri.ctr.status") "" }} &middot; {{ .JSON.String "cards.kolibri.ctr.status" }}{{ end }}{{ end }}</div>
+                {{ else }}<p class="color-negative">Kolibri is not responding{{ if ne (.JSON.String "cards.kolibri.err") "" }}: {{ .JSON.String "cards.kolibri.err" }}{{ end }}</p>{{ end }}
+
+            - type: custom-api
+              title: Stirling PDF
+              title-url: http://${HOST_SVC}:8400
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "cards.stirling.up" }}
+                <div class="wb-stats margin-bottom-10"><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.stirling.enabled" }}<span class="size-h6"> / {{ .JSON.Int "cards.stirling.tools" }}</span></div><div class="size-h6">TOOLS ENABLED</div></div><div><div class="size-h3 color-highlight">{{ .JSON.String "cards.stirling.version" }}</div><div class="size-h6">VERSION</div></div><div><div class="size-h3 color-highlight">{{ .JSON.String "cards.stirling.uptime" }}</div><div class="size-h6">UPTIME</div></div></div>
+                <p class="size-h6 color-subdue">Merge, split, compress, convert, OCR, sign, redact and more. Files are processed on this server and never leave it.</p>
+                {{ if ne (.JSON.String "cards.stirling.update") "" }}<p class="size-h6 color-primary margin-top-5">Update available: {{ .JSON.String "cards.stirling.update" }}</p>{{ end }}
+
+                <div class="size-h6 color-subdue margin-top-15 wb-ctr">{{ if .JSON.Bool "cards.stirling.ctr.running" }}<span class="color-positive">&#9679;</span> container {{ .JSON.String "cards.stirling.ctr.status" }}{{ if ge (.JSON.Float "cards.stirling.ctr.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.stirling.ctr.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.stirling.ctr.mem_mb" }} MB{{ end }}{{ if ne (.JSON.String "cards.stirling.ctr.tag") "latest" }} &middot; {{ .JSON.String "cards.stirling.ctr.tag" }}{{ end }}{{ else }}<span class="color-negative">&#9679;</span> container {{ .JSON.String "cards.stirling.ctr.state" }}{{ if ne (.JSON.String "cards.stirling.ctr.status") "" }} &middot; {{ .JSON.String "cards.stirling.ctr.status" }}{{ end }}{{ end }}</div>
+                {{ else }}<p class="color-negative">Stirling PDF is not responding{{ if ne (.JSON.String "cards.stirling.err") "" }}: {{ .JSON.String "cards.stirling.err" }}{{ end }}</p>{{ end }}
+
+            - type: custom-api
+              title: Flatnotes
+              title-url: http://${HOST_SVC}:8200
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "cards.flatnotes.up" }}
+                <div class="wb-stats margin-bottom-10"><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.flatnotes.notes" }}</div><div class="size-h6">NOTES</div></div><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.flatnotes.tags" }}</div><div class="size-h6">TAGS</div></div><div><div class="size-h3 color-highlight">{{ .JSON.Int "cards.flatnotes.week" }}</div><div class="size-h6">EDITED THIS WEEK</div></div></div>
+                <p class="size-h6 color-subdue">{{ if lt (.JSON.Int "cards.flatnotes.last_h") 0 }}No notes yet.{{ else if lt (.JSON.Int "cards.flatnotes.last_h") 48 }}Last edit {{ .JSON.Int "cards.flatnotes.last_h" }}h ago.{{ else }}Last edit {{ div (.JSON.Int "cards.flatnotes.last_h") 24 }}d ago.{{ end }} Plain markdown files; titles are not shown here.</p>
+                {{ if ne (.JSON.String "cards.flatnotes.update") "" }}<p class="size-h6 color-primary margin-top-5">Update available: {{ .JSON.String "cards.flatnotes.update" }}</p>{{ end }}
+                <div class="wb-pillrow margin-top-10"><a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8200/new">New note</a><a class="wb-pill" target="_blank" href="http://${HOST_SVC}:8200">Open Flatnotes</a></div>
+
+                <div class="size-h6 color-subdue margin-top-15 wb-ctr">{{ if .JSON.Bool "cards.flatnotes.ctr.running" }}<span class="color-positive">&#9679;</span> container {{ .JSON.String "cards.flatnotes.ctr.status" }}{{ if ge (.JSON.Float "cards.flatnotes.ctr.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.flatnotes.ctr.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.flatnotes.ctr.mem_mb" }} MB{{ end }}{{ if ne (.JSON.String "cards.flatnotes.ctr.tag") "latest" }} &middot; {{ .JSON.String "cards.flatnotes.ctr.tag" }}{{ end }}{{ else }}<span class="color-negative">&#9679;</span> container {{ .JSON.String "cards.flatnotes.ctr.state" }}{{ if ne (.JSON.String "cards.flatnotes.ctr.status") "" }} &middot; {{ .JSON.String "cards.flatnotes.ctr.status" }}{{ end }}{{ end }}</div>
+                {{ else }}<p class="color-negative">Flatnotes is not responding{{ if ne (.JSON.String "cards.flatnotes.err") "" }}: {{ .JSON.String "cards.flatnotes.err" }}{{ end }}</p>{{ end }}
+
+            - type: custom-api
+              title: Homebox
+              title-url: http://${HOST_SVC}:8470
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+
+                {{ if .JSON.Bool "cards.homebox.up" }}
+                <div class="wb-stats margin-bottom-10"><div><div class="size-h3 color-highlight">{{ .JSON.String "cards.homebox.version" }}</div><div class="size-h6">INSTALLED</div></div><div><div class="size-h3 {{ if .JSON.Bool "cards.homebox.update" }}color-primary{{ else }}color-positive{{ end }}">{{ .JSON.String "cards.homebox.latest" }}</div><div class="size-h6">LATEST</div></div><div><div class="size-h3 color-highlight">{{ .JSON.String "cards.homebox.released" }}</div><div class="size-h6">RELEASED</div></div></div>
+                <p class="size-h6 {{ if .JSON.Bool "cards.homebox.update" }}color-primary{{ else }}color-positive{{ end }}">{{ if .JSON.Bool "cards.homebox.update" }}A newer version is available.{{ else }}Up to date.{{ end }}</p>
+                <p class="size-h6 color-subdue margin-top-5">{{ .JSON.String "cards.homebox.message" }}. Item counts need a login, so they are not shown here.</p>
+
+                <div class="size-h6 color-subdue margin-top-15 wb-ctr">{{ if .JSON.Bool "cards.homebox.ctr.running" }}<span class="color-positive">&#9679;</span> container {{ .JSON.String "cards.homebox.ctr.status" }}{{ if ge (.JSON.Float "cards.homebox.ctr.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.homebox.ctr.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.homebox.ctr.mem_mb" }} MB{{ end }}{{ if ne (.JSON.String "cards.homebox.ctr.tag") "latest" }} &middot; {{ .JSON.String "cards.homebox.ctr.tag" }}{{ end }}{{ else }}<span class="color-negative">&#9679;</span> container {{ .JSON.String "cards.homebox.ctr.state" }}{{ if ne (.JSON.String "cards.homebox.ctr.status") "" }} &middot; {{ .JSON.String "cards.homebox.ctr.status" }}{{ end }}{{ end }}</div>
+                {{ else }}<p class="color-negative">Homebox is not responding{{ if ne (.JSON.String "cards.homebox.err") "" }}: {{ .JSON.String "cards.homebox.err" }}{{ end }}</p>{{ end }}
+
+            - type: custom-api
+              title: Remote apps and vault
+              title-url: http://${HOST_SVC}:5001
+              cache: 2m
+              url: http://${HOST_SVC}:3005/api/tools/summary
+              template: |
+                <ul class="list list-gap-10 size-h6">
+                <li>
+                  <div class="flex justify-between gap-10"><span class="text-truncate">{{ if .JSON.Bool "cards.remote.ctr_picard.running" }}<span class="color-positive">&#9679;</span>{{ else }}<span class="color-negative">&#9679;</span>{{ end }} <a class="color-highlight" href="http://${HOST_SVC}:8086" target="_blank">Picard (MusicBrainz tagger)</a></span><span class="shrink-0 color-subdue">{{ if .JSON.Bool "cards.remote.ctr_picard.running" }}{{ .JSON.String "cards.remote.ctr_picard.status" }}{{ else }}{{ .JSON.String "cards.remote.ctr_picard.state" }}{{ end }}</span></div>
+                  <div class="color-subdue">Music tagging in the browser{{ if .JSON.Bool "cards.remote.ctr_picard.running" }}{{ if ge (.JSON.Float "cards.remote.ctr_picard.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.remote.ctr_picard.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.remote.ctr_picard.mem_mb" }} MB{{ end }}{{ end }}</div>
+                </li>
+
+                <li>
+                  <div class="flex justify-between gap-10"><span class="text-truncate">{{ if .JSON.Bool "cards.remote.ctr_firefox.running" }}<span class="color-positive">&#9679;</span>{{ else }}<span class="color-negative">&#9679;</span>{{ end }} <a class="color-highlight" href="http://${HOST_SVC}:5800" target="_blank">Firefox (remote browser)</a></span><span class="shrink-0 color-subdue">{{ if .JSON.Bool "cards.remote.ctr_firefox.running" }}{{ .JSON.String "cards.remote.ctr_firefox.status" }}{{ else }}{{ .JSON.String "cards.remote.ctr_firefox.state" }}{{ end }}</span></div>
+                  <div class="color-subdue">A browser running on the server, for reaching internal pages{{ if .JSON.Bool "cards.remote.ctr_firefox.running" }}{{ if ge (.JSON.Float "cards.remote.ctr_firefox.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.remote.ctr_firefox.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.remote.ctr_firefox.mem_mb" }} MB{{ end }}{{ end }}</div>
+                </li>
+
+                <li>
+                  <div class="flex justify-between gap-10"><span class="text-truncate">{{ if .JSON.Bool "cards.remote.ctr_vault.running" }}<span class="color-positive">&#9679;</span>{{ else }}<span class="color-negative">&#9679;</span>{{ end }} <a class="color-highlight" href="https://services.example.ts.net:8443" target="_blank">Vaultwarden</a></span><span class="shrink-0 color-subdue">{{ if .JSON.Bool "cards.remote.ctr_vault.running" }}{{ .JSON.String "cards.remote.ctr_vault.status" }}{{ else }}{{ .JSON.String "cards.remote.ctr_vault.state" }}{{ end }}</span></div>
+                  <div class="color-subdue">Password vault (reached over Tailscale only); stopped on purpose{{ if .JSON.Bool "cards.remote.ctr_vault.running" }}{{ if ge (.JSON.Float "cards.remote.ctr_vault.cpu_pct") 0.0 }} &middot; {{ .JSON.Float "cards.remote.ctr_vault.cpu_pct" }}% CPU &middot; {{ .JSON.Int "cards.remote.ctr_vault.mem_mb" }} MB{{ end }}{{ end }}</div>
+                </li>
+                </ul>
 
     - size: small
       widgets:
