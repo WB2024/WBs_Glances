@@ -46,7 +46,7 @@ recent = """
 <div class="wb-strip">
 {{ range .JSON.Array "recent" }}
   <div class="wb-card" style="flex-basis:12rem">
-    <a href="https://${HOST_AUTO}:8971" target="_blank">
+    <a href="@FR@/api/events/{{ .String "id" }}/snapshot.jpg" target="_blank" title="{{ .String "description" }}">
       <img src="@FR@/api/events/{{ .String "id" }}/thumbnail.jpg" alt="" loading="lazy" style="aspect-ratio:16/10">
       <div class="wb-title">{{ .String "label" }}{{ if ne (.String "sub") "" }} &middot; {{ .String "sub" }}{{ end }}</div>
       <div class="wb-sub">{{ .String "camera" }} &middot; AGE{{ if .Bool "ongoing" }} &middot; now{{ else if gt (.Int "seconds") 0 }} &middot; {{ .Int "seconds" }}s{{ end }}{{ if gt (.Int "score") 0 }} &middot; {{ .Int "score" }}%{{ end }}</div>
@@ -63,7 +63,7 @@ by_label = """
 <div class="wb-strip margin-bottom-15">
 {{ range .Array "events" }}
   <div class="wb-card" style="flex-basis:12rem">
-    <a href="@FR@/api/events/{{ .String "id" }}/snapshot.jpg" target="_blank">
+    <a href="@FR@/api/events/{{ .String "id" }}/snapshot.jpg" target="_blank" title="{{ .String "description" }}">
       <img src="@FR@/api/events/{{ .String "id" }}/thumbnail.jpg" alt="" loading="lazy" style="aspect-ratio:16/10">
       <div class="wb-title">{{ if ne (.String "sub") "" }}{{ .String "sub" }}{{ else }}{{ .String "label" }}{{ end }}</div>
       <div class="wb-sub">{{ .String "camera" }} &middot; AGE{{ if gt (.Int "seconds") 0 }} &middot; {{ .Int "seconds" }}s{{ end }}{{ if gt (.Int "score") 0 }} &middot; {{ .Int "score" }}%{{ end }}</div>
@@ -75,7 +75,7 @@ by_label = """
 """.replace("@FR@", FR).replace("AGE", AGE.replace("@X@", '.Int "age_min"'))
 
 explorer = """        - type: html
-          title: Search detections by date and time
+          title: Search detections
           source: |
             <div data-wb="cam-events" data-wb-noindex data-frigate="@FR@" data-frigate-ui="https://${HOST_AUTO}:8971"></div>
 """.replace("@FR@", FR)
@@ -121,7 +121,6 @@ links = """        - type: bookmarks
 page = "- name: Cameras\n  slug: cameras\n  width: wide\n  columns:\n    - size: full\n      widgets:\n"
 page += card("Live", "https://${HOST_AUTO}:8971", live, cache="1m") + "\n"
 page += card("Recent detections", "https://${HOST_AUTO}:8971", recent, cache="30s") + "\n"
-page += card("Detections by type", "https://${HOST_AUTO}:8971", by_label, cache="2m") + "\n"
 page += explorer + "\n"
 page += "    - size: small\n      widgets:\n" + card("Frigate", "https://${HOST_AUTO}:8971", status, cache="20s") + "\n" + links
 

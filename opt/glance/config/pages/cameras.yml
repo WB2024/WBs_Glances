@@ -41,7 +41,7 @@
             <div class="wb-strip">
             {{ range .JSON.Array "recent" }}
               <div class="wb-card" style="flex-basis:12rem">
-                <a href="https://${HOST_AUTO}:8971" target="_blank">
+                <a href="http://${HOST_AUTO}:5000/api/events/{{ .String "id" }}/snapshot.jpg" target="_blank" title="{{ .String "description" }}">
                   <img src="http://${HOST_AUTO}:5000/api/events/{{ .String "id" }}/thumbnail.jpg" alt="" loading="lazy" style="aspect-ratio:16/10">
                   <div class="wb-title">{{ .String "label" }}{{ if ne (.String "sub") "" }} &middot; {{ .String "sub" }}{{ end }}</div>
                   <div class="wb-sub">{{ .String "camera" }} &middot; {{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }} min ago{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h ago{{ else }}{{ div (.Int "age_min") 1440 }}d ago{{ end }}{{ if .Bool "ongoing" }} &middot; now{{ else if gt (.Int "seconds") 0 }} &middot; {{ .Int "seconds" }}s{{ end }}{{ if gt (.Int "score") 0 }} &middot; {{ .Int "score" }}%{{ end }}</div>
@@ -51,31 +51,8 @@
             </div>
 
 
-        - type: custom-api
-          title: Detections by type
-          title-url: https://${HOST_AUTO}:8971
-          cache: 2m
-          url: http://${HOST_SVC}:3005/api/cameras/summary
-          template: |
-
-            {{ range .JSON.Array "by_label" }}
-            <div class="flex justify-between size-h6 margin-bottom-5"><span class="color-highlight" style="text-transform:uppercase;letter-spacing:0.05em">{{ .String "label" }}</span><span class="color-subdue">{{ .Int "count_24h" }} in the last 24 h &middot; newest first</span></div>
-            <div class="wb-strip margin-bottom-15">
-            {{ range .Array "events" }}
-              <div class="wb-card" style="flex-basis:12rem">
-                <a href="http://${HOST_AUTO}:5000/api/events/{{ .String "id" }}/snapshot.jpg" target="_blank">
-                  <img src="http://${HOST_AUTO}:5000/api/events/{{ .String "id" }}/thumbnail.jpg" alt="" loading="lazy" style="aspect-ratio:16/10">
-                  <div class="wb-title">{{ if ne (.String "sub") "" }}{{ .String "sub" }}{{ else }}{{ .String "label" }}{{ end }}</div>
-                  <div class="wb-sub">{{ .String "camera" }} &middot; {{ if lt (.Int "age_min") 1 }}just now{{ else if lt (.Int "age_min") 90 }}{{ .Int "age_min" }} min ago{{ else if lt (.Int "age_min") 2880 }}{{ div (.Int "age_min") 60 }}h ago{{ else }}{{ div (.Int "age_min") 1440 }}d ago{{ end }}{{ if gt (.Int "seconds") 0 }} &middot; {{ .Int "seconds" }}s{{ end }}{{ if gt (.Int "score") 0 }} &middot; {{ .Int "score" }}%{{ end }}</div>
-                </a>
-              </div>
-            {{ end }}
-            </div>
-            {{ else }}<p class="color-subdue size-h6">Nothing detected yet.</p>{{ end }}
-
-
         - type: html
-          title: Search detections by date and time
+          title: Search detections
           source: |
             <div data-wb="cam-events" data-wb-noindex data-frigate="http://${HOST_AUTO}:5000" data-frigate-ui="https://${HOST_AUTO}:8971"></div>
 

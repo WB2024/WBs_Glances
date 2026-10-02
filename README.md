@@ -81,8 +81,10 @@ you get public data only.
 ![Dev](images/14-dev.jpg)
 
 ### Cameras
-Live view from Frigate (a still image, upgraded to a stream only while the tile is on screen and the tab is visible), recent detections, **one row per object type**
-(person, car, cat...), an activity chart, and **search by type, camera and date/time range**. The images below are blurred for privacy.
+Live view from Frigate (a still image, upgraded to a stream only while the tile is on screen and the tab is visible), recent detections, and **search**:
+type what you are looking for ("red jacket", "goth", "carrying a parcel") and Frigate's **semantic search** returns the best matches, either by the written
+**description** Gemini adds for people near the camera, or by **appearance** (the picture itself, for everything else), narrowed by type, camera and a date/time range.
+Click any thumbnail for a viewer with the snapshot, the clip, the description and previous/next. The images below are blurred for privacy.
 
 ![Cameras](images/10-cameras.jpg)
 

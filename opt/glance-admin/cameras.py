@@ -28,32 +28,75 @@ def _shape(e, now):
     return {"id": e["id"], "camera": e.get("camera", ""), "label": e.get("label", ""), "sub": e.get("sub_label") or "",
             "score": int(round(float(score) * 100)) if score else 0, "start": int(e["start_time"]),
             "age_min": max(0, int((now - e["start_time"]) / 60)), "seconds": int(end - e["start_time"]) if end else 0,
-            "ongoing": end is None, "clip": bool(e.get("has_clip")), "zones": ", ".join(e.get("zones") or [])}
+            "ongoing": end is None, "clip": bool(e.get("has_clip")), "snapshot": bool(e.get("has_snapshot")), "zones": ", ".join(e.get("zones") or []),
+            "description": str((e.get("data") or {}).get("description") or "")[:600]}
 
 
-def events(label="", camera="", after=0, before=0, limit=60):
-    """Date/time-range search for the Cameras page (query parameters are validated, then passed to Frigate)."""
+EVENT_ID = re.compile(r"\d{9,11}\.\d{1,8}-[a-z0-9]{4,12}")
+
+
+def events(label="", camera="", after=0, before=0, limit=60, q="", mode="description"):
+    """Date/time-range listing, or (with q) Frigate's semantic search ordered by relevance. Every parameter is validated first."""
     now = time.time()
-    q = {"limit": max(1, min(int(limit), 200))}
+    p = {"limit": max(1, min(int(limit), 200))}
     if label:
         if not re.fullmatch(r"[A-Za-z0-9_ -]{1,30}", label):
             raise ValueError("bad label")
-        q["labels"] = label
+        p["labels"] = label
     if camera:
         if not re.fullmatch(r"[A-Za-z0-9_.-]{1,40}", camera):
             raise ValueError("bad camera")
-        q["cameras"] = camera
-    after, before = int(after or 0), int(before or 0)
+        p["cameras"] = camera
+    after, before = int(float(after or 0)), int(float(before or 0))
     if after and not (now - 400 * 86400 < after <= now + 86400):
         raise ValueError("bad start time")
     if before and not (now - 400 * 86400 < before <= now + 86400):
         raise ValueError("bad end time")
     if after:
-        q["after"] = after
+        p["after"] = after
     if before:
-        q["before"] = before
-    rows = _get("/api/events?" + urllib.parse.urlencode(q), timeout=20)
-    return {"events": [_shape(e, now) for e in rows], "count": len(rows), "capped": len(rows) >= q["limit"]}
+        p["before"] = before
+    q = re.sub(r"\s+", " ", re.sub(r"[\x00-\x1f]", " ", q or "")).strip()
+    if q:
+        if len(q) > 160:
+            raise ValueError("search text is too long")
+        if mode not in ("description", "thumbnail"):
+            raise ValueError("bad search mode")
+        p.update(query=q, search_type=mode)
+        rows = _get("/api/events/search?" + urllib.parse.urlencode(p), timeout=60)
+        out = []
+        for e in rows:
+            s = _shape(e, now)
+            d = e.get("search_distance")
+            s["match"] = int(round(max(0.0, 1.0 - float(d)) * 100)) if d is not None else 0
+            out.append(s)
+        return {"events": out, "count": len(out), "capped": len(out) >= p["limit"], "query": q, "mode": mode}
+    rows = _get("/api/events?" + urllib.parse.urlencode(p), timeout=20)
+    return {"events": [_shape(e, now) for e in rows], "count": len(rows), "capped": len(rows) >= p["limit"], "query": "", "mode": ""}
+
+
+MAX_CLIP = 40 * 1024 * 1024
+
+
+def clip(eid):
+    """The event's clip as an MP4 a browser will play: Frigate streams it chunked (no length, no ranges) and tags HEVC as 'hev1', which
+    browsers reject. Re-tagging hev1 as hvc1 is what `ffmpeg -c copy -tag:v hvc1` does (the parameter sets are already in the file)."""
+    if not EVENT_ID.fullmatch(eid or ""):
+        raise ValueError("bad event id")
+    with urllib.request.urlopen(urllib.request.Request(BASE + "/api/events/%s/clip.mp4" % eid, headers={"User-Agent": "glance-admin/1"}), timeout=60) as r:
+        data = r.read(MAX_CLIP + 1)
+    if len(data) > MAX_CLIP:
+        raise ValueError("clip too large")
+    head = data[:8192]
+    if b"hev1" in head:
+        data = data[:8192].replace(b"hev1", b"hvc1", 1) + data[8192:]
+    return data
+
+
+def event(eid):
+    if not EVENT_ID.fullmatch(eid or ""):
+        raise ValueError("bad event id")
+    return _shape(_get("/api/events/" + eid), time.time())
 
 
 def build():

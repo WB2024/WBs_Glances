@@ -901,7 +901,7 @@ class H(BaseHTTPRequestHandler):
             q = parse_qs(u.query)
             try:
                 res = cam.events((q.get("label") or [""])[0], (q.get("camera") or [""])[0], (q.get("after") or ["0"])[0],
-                                 (q.get("before") or ["0"])[0], (q.get("limit") or ["60"])[0])
+                                 (q.get("before") or ["0"])[0], (q.get("limit") or ["60"])[0], (q.get("q") or [""])[0], (q.get("mode") or ["description"])[0])
             except ValueError as exc:
                 return self._send(400, {"error": str(exc)})
             except Exception:
@@ -912,6 +912,52 @@ class H(BaseHTTPRequestHandler):
             if _devst["data"] is None:
                 return self._send(503, {"error": "not cached yet", "detail": _devst["err"]})
             return self._send(200, _devst["data"])
+
+        if path == "/api/cameras/clip" and method == "GET":
+            import cameras as cam
+            try:
+                data = cam.clip((parse_qs(u.query).get("id") or [""])[0])
+            except ValueError as exc:
+                return self._send(400, {"error": str(exc)})
+            except Exception:
+                return self._send(404, {"error": "clip not available"})
+            total, start, end, code = len(data), 0, len(data) - 1, 200
+            m = re.fullmatch(r"bytes=(\d*)-(\d*)", self.headers.get("Range", ""))
+            if m and (m.group(1) or m.group(2)):
+                if m.group(1):
+                    start = int(m.group(1))
+                    end = int(m.group(2)) if m.group(2) else total - 1
+                else:
+                    start = max(total - int(m.group(2)), 0)
+                end = min(end, total - 1)
+                if start > end:
+                    self.send_response(416)
+                    self.send_header("Content-Range", "bytes */%d" % total)
+                    self.end_headers()
+                    return
+                code = 206
+            body = data[start:end + 1]
+            self.send_response(code)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Type", "video/mp4")
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Content-Length", str(len(body)))
+            if code == 206:
+                self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, total))
+            self.send_header("Cache-Control", "private, max-age=600")
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+            return
+
+        if path == "/api/cameras/event" and method == "GET":
+            import cameras as cam
+            try:
+                return self._send(200, cam.event((parse_qs(u.query).get("id") or [""])[0]))
+            except ValueError as exc:
+                return self._send(400, {"error": str(exc)})
+            except Exception:
+                return self._send(404, {"error": "event not found"})
 
         if path == "/api/cameras/summary" and method == "GET":
             if _camst["data"] is None:

@@ -487,14 +487,77 @@
     });
   }
 
-  /* ------------------------------------------------------------------ CAMERA detection search (Cameras page)
-     Type + camera + date/time range -> glance-admin /api/cameras/events -> a scrollable strip of thumbnails straight from Frigate. */
+  /* ------------------------------------------------------------------ CAMERA detection search + viewer (Cameras page)
+     Text search (Frigate semantic search: by description or by appearance), type, camera and date/time range -> glance-admin
+     /api/cameras/events -> a strip of thumbnails. Click any thumbnail on this page (search, recent, by type) to open the viewer:
+     snapshot, clip, description, previous/next. Images and clips come straight from Frigate on the LAN. */
+  var camViewer = null;
+  function camWhen(ts) { return new Date(ts * 1000).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+
+  function openCamViewer(items, idx, FR, UI) {
+    var cur = idx;
+    if (!camViewer) {
+      var ov = h('div', 'wb-modal'); ov.hidden = true;
+      var box = h('div', 'wb-modal-box');
+      var head = h('div', 'wb-modal-head'); var title = h('div', 'wb-modal-title'); var close = h('button', 'wb-modal-x', '✕'); close.type = 'button'; close.title = 'Close (Esc)';
+      head.appendChild(title); head.appendChild(close);
+      var stage = h('div', 'wb-modal-stage'); var prev = h('button', 'wb-modal-nav wb-modal-prev', '‹'); var next = h('button', 'wb-modal-nav wb-modal-next', '›');
+      prev.type = 'button'; next.type = 'button';
+      var bar = h('div', 'wb-modal-bar'); var desc = h('div', 'wb-modal-desc');
+      box.appendChild(head); box.appendChild(stage); box.appendChild(bar); box.appendChild(desc); ov.appendChild(prev); ov.appendChild(box); ov.appendChild(next);
+      document.body.appendChild(ov);
+      camViewer = { ov: ov, title: title, stage: stage, bar: bar, desc: desc, prev: prev, next: next, close: close, items: [], i: 0, FR: FR, UI: UI };
+      function shut() { ov.hidden = true; stage.textContent = ''; }
+      close.addEventListener('click', shut);
+      ov.addEventListener('click', function (ev) { if (ev.target === ov) shut(); });
+      document.addEventListener('keydown', function (ev) {
+        if (ov.hidden) return;
+        if (ev.key === 'Escape') shut();
+        else if (ev.key === 'ArrowLeft') camViewer.prev.click();
+        else if (ev.key === 'ArrowRight') camViewer.next.click();
+      });
+      prev.addEventListener('click', function () { if (camViewer.i > 0) camViewer.show(camViewer.i - 1); });
+      next.addEventListener('click', function () { if (camViewer.i < camViewer.items.length - 1) camViewer.show(camViewer.i + 1); });
+      camViewer.show = function (n) {
+        var V = camViewer, e = V.items[n]; V.i = n;
+        V.title.textContent = (e.sub || e.label) + '  ·  ' + e.camera + '  ·  ' + camWhen(e.start) + (e.seconds ? '  ·  ' + e.seconds + 's' : '') + (e.score ? '  ·  ' + e.score + '%' : '');
+        V.stage.textContent = ''; V.bar.textContent = '';
+        function showImage() {
+          V.stage.textContent = '';
+          var im = h('img'); im.src = V.FR + '/api/events/' + e.id + (e.snapshot ? '/snapshot.jpg' : '/thumbnail.jpg'); im.alt = ''; V.stage.appendChild(im);
+        }
+        function showClip() {
+          V.stage.textContent = '';
+          var v = h('video'); v.controls = true; v.autoplay = true; v.muted = true; v.playsInline = true; v.src = API + '/api/cameras/clip?id=' + encodeURIComponent(e.id);
+          v.addEventListener('error', function () { V.stage.textContent = ''; V.stage.appendChild(h('div', 'wb-modal-msg', 'The clip could not be played (it may have been cleaned up, or the browser cannot decode it). Use "Open in Frigate".')); });
+          V.stage.appendChild(v);
+        }
+        var bImg = h('button', '', 'Snapshot'); bImg.type = 'button'; bImg.addEventListener('click', showImage);
+        V.bar.appendChild(bImg);
+        if (e.clip) { var bClip = h('button', '', 'Play clip'); bClip.type = 'button'; bClip.addEventListener('click', showClip); V.bar.appendChild(bClip); }
+        var a1 = h('a', '', 'Open image'); a1.href = V.FR + '/api/events/' + e.id + (e.snapshot ? '/snapshot.jpg' : '/thumbnail.jpg'); a1.target = '_blank'; V.bar.appendChild(a1);
+        if (e.clip) { var a2 = h('a', '', 'Download clip'); a2.href = API + '/api/cameras/clip?id=' + encodeURIComponent(e.id); a2.target = '_blank'; V.bar.appendChild(a2); }
+        var a3 = h('a', '', 'Open in Frigate'); a3.href = V.UI + '/explore'; a3.target = '_blank'; V.bar.appendChild(a3);
+        V.desc.textContent = e.description || 'No description for this detection (people who enter the near-camera zone get one).';
+        V.desc.className = 'wb-modal-desc' + (e.description ? '' : ' color-subdue');
+        V.prev.style.visibility = n > 0 ? 'visible' : 'hidden'; V.next.style.visibility = n < V.items.length - 1 ? 'visible' : 'hidden';
+        showImage();
+      };
+    }
+    camViewer.FR = FR; camViewer.UI = UI; camViewer.items = items; camViewer.ov.hidden = false; camViewer.show(idx);
+  }
+
   function initCamEvents(node) {
     var FR = node.getAttribute('data-frigate') || '';
     var UI = node.getAttribute('data-frigate-ui') || FR;
+    var list = [];
     var form = h('form', 'wb-chan-add wb-cam-search');
+    var q = h('input', 'wb-cam-q'); q.type = 'search'; q.placeholder = 'Describe it: red jacket, goth, tracksuit, carrying a parcel, white van...'; q.spellcheck = false; q.maxLength = 160;
+    var selMode = h('select');
+    [['description', 'by description'], ['thumbnail', 'by appearance']].forEach(function (m) { var o = h('option', '', m[1]); o.value = m[0]; selMode.appendChild(o); });
+    selMode.title = 'Description: matches the written description (people near the camera). Appearance: matches the picture itself (everything).';
     var selType = h('select'), selCam = h('select'), selRange = h('select');
-    [['1', 'Last hour'], ['6', 'Last 6 hours'], ['24', 'Last 24 hours'], ['168', 'Last 7 days'], ['custom', 'Custom range...']].forEach(function (r) {
+    [['1', 'Last hour'], ['6', 'Last 6 hours'], ['24', 'Last 24 hours'], ['168', 'Last 7 days'], ['720', 'Last 30 days'], ['custom', 'Custom range...']].forEach(function (r) {
       var o = h('option', '', r[1]); o.value = r[0]; if (r[0] === '24') o.selected = true; selRange.appendChild(o);
     });
     function dt(hoursAgo) {
@@ -505,9 +568,10 @@
     from.type = 'datetime-local'; to.type = 'datetime-local'; from.value = dt(24); to.value = dt(0);
     from.hidden = true; to.hidden = true; from.title = 'From'; to.title = 'To';
     var go = h('button', '', 'Search'); go.type = 'submit';
-    [selType, selCam, selRange, from, to, go].forEach(function (e) { form.appendChild(e); });
+    var clear = h('button', '', 'Clear'); clear.type = 'button';
+    [q, selMode, selType, selCam, selRange, from, to, go, clear].forEach(function (e) { form.appendChild(e); });
     var msg = h('div', 'size-h6 color-subdue wb-chan-msg');
-    var strip = h('div', 'wb-strip');
+    var strip = h('div', 'wb-results');
     node.appendChild(form); node.appendChild(msg); node.appendChild(strip);
 
     function opt(sel, value, text) { var o = h('option', '', text); o.value = value; sel.appendChild(o); }
@@ -517,17 +581,21 @@
       (d.cameras || []).forEach(function (c) { opt(selCam, c.name, c.name); });
     }).catch(function () { /* the filters simply stay on "all" */ });
     selRange.addEventListener('change', function () { var c = selRange.value === 'custom'; from.hidden = !c; to.hidden = !c; });
+    clear.addEventListener('click', function () { q.value = ''; search(); });
 
-    function fmt(ts) { return new Date(ts * 1000).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
-    function card(e) {
-      var c = h('div', 'wb-card'); c.style.flexBasis = '12rem';
-      var a = h('a'); a.href = FR + '/api/events/' + e.id + '/snapshot.jpg'; a.target = '_blank';
-      var img = h('img'); img.src = FR + '/api/events/' + e.id + '/thumbnail.jpg'; img.alt = ''; img.loading = 'lazy'; img.style.aspectRatio = '16/10';
+    function card(e, i) {
+      var c = h('div', 'wb-card');
+      var a = h('a'); a.href = FR + '/api/events/' + e.id + '/snapshot.jpg'; a.target = '_blank'; a.title = e.description || '';
+      a.addEventListener('click', function (ev) { if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return; ev.preventDefault(); openCamViewer(list, i, FR, UI); });
+      var img = h('img'); img.alt = ''; img.style.aspectRatio = '16/10';
+      img.classList.add('loaded', 'finished-transition');            // Glance hides lazy images until ITS script marks them loaded; it does not see images added later
+      img.loading = 'lazy'; img.src = FR + '/api/events/' + e.id + '/thumbnail.jpg';
       a.appendChild(img);
       a.appendChild(h('div', 'wb-title', e.sub || e.label));
-      a.appendChild(h('div', 'wb-sub', e.camera + ' · ' + fmt(e.start) + (e.seconds ? ' · ' + e.seconds + 's' : '') + (e.score ? ' · ' + e.score + '%' : '')));
+      var sub = e.camera + ' · ' + camWhen(e.start);
+      a.appendChild(h('div', 'wb-sub', sub));
+      if (e.description) { var d = e.description.replace(/^\[[^\]]+\]\s*/, ''); var tag = (e.description.match(/^\[([^\]]+)\]/) || [])[1]; if (tag) a.appendChild(h('div', 'wb-sub wb-tag', tag)); a.appendChild(h('div', 'wb-sub wb-desc', d)); }
       c.appendChild(a);
-      if (e.clip) { var cl = h('a', 'size-h6 color-subdue', 'clip'); cl.href = FR + '/api/events/' + e.id + '/clip.mp4'; cl.target = '_blank'; c.appendChild(cl); }
       return c;
     }
     function search() {
@@ -536,19 +604,37 @@
         after = Math.floor(new Date(from.value).getTime() / 1000); before = Math.floor(new Date(to.value).getTime() / 1000);
         if (!after || !before || after >= before) { msg.className = 'size-h6 wb-chan-msg color-negative'; msg.textContent = 'Pick a start that is before the end.'; return; }
       } else { after = Math.floor(Date.now() / 1000) - parseInt(selRange.value, 10) * 3600; }
-      var q = '?limit=120&after=' + after + (before ? '&before=' + before : '') + (selType.value ? '&label=' + encodeURIComponent(selType.value) : '') + (selCam.value ? '&camera=' + encodeURIComponent(selCam.value) : '');
-      go.disabled = true; msg.className = 'size-h6 wb-chan-msg color-subdue'; msg.textContent = 'Searching...';
-      fetch(API + '/api/cameras/events' + q).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }); })
+      var text = q.value.trim();
+      var qs = '?limit=120&after=' + after + (before ? '&before=' + before : '') + (selType.value ? '&label=' + encodeURIComponent(selType.value) : '') + (selCam.value ? '&camera=' + encodeURIComponent(selCam.value) : '')
+        + (text ? '&q=' + encodeURIComponent(text) + '&mode=' + selMode.value : '');
+      go.disabled = true; msg.className = 'size-h6 wb-chan-msg color-subdue'; msg.textContent = text ? 'Searching for "' + text + '"...' : 'Searching...';
+      fetch(API + '/api/cameras/events' + qs).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }); })
         .then(function (d) {
-          strip.textContent = '';
-          d.events.forEach(function (e) { strip.appendChild(card(e)); });
-          strip.scrollLeft = 0; strip.dispatchEvent(new Event('scroll'));
-          msg.textContent = d.count ? (d.count + ' detection' + (d.count === 1 ? '' : 's') + (d.capped ? ' (showing the newest 120: narrow the range to see others)' : '') + '  ·  newest first, scroll sideways for more') : 'Nothing detected in that range.';
+          list = d.events; strip.textContent = '';
+          list.forEach(function (e, i) { strip.appendChild(card(e, i)); });
+          msg.textContent = d.count
+            ? (d.count + ' result' + (d.count === 1 ? '' : 's') + (text ? ', best match first (' + (d.mode === 'description' ? 'matching descriptions' : 'matching appearance') + ')' : ', newest first') + (d.capped ? ' · showing the first 120: narrow it down to see others' : '') + ' · click one to view the image or clip')
+            : (text && d.mode === 'description' ? 'Nothing matched. Descriptions exist only for people near the camera: try "by appearance" for everything else.' : 'Nothing found in that range.');
         })
         .catch(function (e) { msg.className = 'size-h6 wb-chan-msg color-negative'; msg.textContent = e.message; })
         .then(function () { go.disabled = false; });
     }
     form.addEventListener('submit', function (ev) { ev.preventDefault(); search(); });
+
+    // the other strips on this page (Recent detections, Detections by type) are rendered by Glance: open their thumbnails in the viewer too
+    if (!document.__wbCamClicks) {
+      document.__wbCamClicks = true;
+      document.addEventListener('click', function (ev) {
+        if (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return;
+        var a = ev.target.closest && ev.target.closest('a[href*="/api/events/"]');
+        if (!a || a.closest('[data-wb=cam-events]')) return;
+        var m = a.getAttribute('href').match(/\/api\/events\/([0-9.]+-[a-z0-9]+)\/snapshot\.jpg/);
+        if (!m) return;
+        ev.preventDefault();
+        fetch(API + '/api/cameras/event?id=' + encodeURIComponent(m[1])).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+          .then(function (e) { openCamViewer([e], 0, FR, UI); }).catch(function () { window.open(a.href, '_blank'); });
+      });
+    }
     search();
   }
 
