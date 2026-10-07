@@ -1,7 +1,7 @@
 """VPN control bridge for the Glance Networking page (stdlib only; imported by app.py).
 
   summary()       : every device managed by wbs-vpn-dashboard (status, current country, last result), shaped for the page
-  command(body)   : forward ONE allow-listed command (connect / disconnect / killswitch / pihole_dns / tailscale) to a device
+  command(body)   : forward ONE allow-listed command (connect / disconnect / killswitch / tailscale / dns_mode (pihole_dns is the legacy on/off)) to a device
   origin_ok(...)  : browser-CSRF guard for the write endpoint (the page must come from this host)
 
 The panel's API key lives only in this container (VPN_KEY); the browser never sees it. wbs-vpn-dashboard is the source of truth:
@@ -21,7 +21,8 @@ _cache = {"at": 0.0, "data": None}
 
 ID_RE = re.compile(r"[0-9a-f]{8}")
 COUNTRY_RE = re.compile(r"[A-Za-z][A-Za-z_ ]{1,38}")
-TYPES = {"connect", "disconnect", "killswitch", "pihole_dns", "tailscale"}
+TYPES = {"connect", "disconnect", "killswitch", "pihole_dns", "tailscale", "dns_mode"}
+DNS_MODES = ("nord", "split", "pihole")
 TOGGLES = {"killswitch", "pihole_dns", "tailscale"}
 
 
@@ -65,6 +66,7 @@ def summary():
             "nord": bool(s.get("nord_installed")), "connected": bool(s.get("connected")),
             "country": s.get("country", ""), "city": s.get("city", ""), "ip": s.get("ip", ""),
             "kill_switch": bool(s.get("kill_switch")), "pihole_dns": bool(s.get("pihole_dns")),
+            "dns_mode": s.get("dns_mode") or ("pihole" if s.get("pihole_dns") else "nord"),
             "tailscale": s.get("tailscale", "absent"), "error": s.get("error", ""),
             "busy": bool(d.get("inflight") or d.get("pending")),
             "last": {"ok": bool(last["ok"]), "type": last["type"], "message": last["message"], "age_s": now - last["at"]} if last else None,
@@ -95,6 +97,10 @@ def command(body):
     elif typ in TOGGLES:
         if body.get("value") not in ("on", "off"):
             raise ValueError("value must be on or off")
+        cmd["value"] = body["value"]
+    elif typ == "dns_mode":
+        if body.get("value") not in DNS_MODES:
+            raise ValueError("dns mode must be nord, split or pihole")
         cmd["value"] = body["value"]
     res = _call("POST", "/api/v1/devices/%s/command" % urllib.parse.quote(dev), cmd)
     _cache["data"] = None          # show the queued state on the next poll

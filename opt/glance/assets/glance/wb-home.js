@@ -1053,10 +1053,12 @@
       var tg = h('div', 'wb-vpn-tgs');
       tg.appendChild(toggle('Kill switch', d.kill_switch, !usable || d.busy || (!d.connected && !d.kill_switch), function (v) { send({ id: d.id, type: 'killswitch', value: v ? 'on' : 'off' }); }));
       tg.appendChild(toggle('Tailscale', d.tailscale === 'up', !d.online || d.busy || d.tailscale === 'absent', function (v) { send({ id: d.id, type: 'tailscale', value: v ? 'on' : 'off' }); }));
-      var adv = h('details', 'wb-fold wb-vpn-adv'), sm = h('summary', 'size-h6', 'Advanced');
-      adv.appendChild(sm);
-      adv.appendChild(toggle('Pi-hole DNS while connected (experimental: reverts itself if DNS breaks)', d.pihole_dns, !usable || d.busy, function (v) { send({ id: d.id, type: 'pihole_dns', value: v ? 'on' : 'off' }); }));
-      tg.appendChild(adv); r.appendChild(tg);
+      var dl = h('label', 'wb-vpn-tog size-h6'), ds = h('select', 'wb-vpn-dns');
+      dl.title = 'How name lookups are handled while connected. Nord DNS: private, but local names do not resolve. Local names via Pi-hole: your local domain keeps working, the internet still uses Nord DNS. Pi-hole for everything: ad blocking everywhere, but lookups leave through your home connection.';
+      [['nord', 'Nord DNS'], ['split', 'Local names via Pi-hole'], ['pihole', 'Pi-hole for everything']].forEach(function (m) { var o = h('option', '', m[1]); o.value = m[0]; ds.appendChild(o); });
+      ds.value = d.dns_mode || 'nord'; ds.disabled = !usable || d.busy;
+      ds.addEventListener('change', function () { send({ id: d.id, type: 'dns_mode', value: ds.value }); });
+      dl.appendChild(document.createTextNode('DNS ')); dl.appendChild(ds); tg.appendChild(dl); r.appendChild(tg);
 
       var note = null;
       if (d.busy) note = ['Working...', false];

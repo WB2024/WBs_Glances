@@ -475,3 +475,5 @@ i.wb-cat { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius
 .wb-vpn-adv { flex-basis: 100%; }
 .wb-vpn-note { word-break: break-word; }
 .wb-vpn-msg { min-height: 1.4rem; margin-top: 0.4rem; }
+.wb-vpn-dns { padding: 0.2rem 0.4rem; background: var(--color-widget-background); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; }
+.wb-vpn-dns:disabled { opacity: 0.45; }

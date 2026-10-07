@@ -63,7 +63,7 @@ SMART health, SSD life left, and what it is used for), live space in use, and wh
 A diagram of the network, Pi-hole stats (with the "top blocked domains" collapse), Tailscale devices (OAuth, read-only), and Nginx Proxy Manager with a
 check of every backend. Problems always show; **all proxy hosts** are in a collapsed list.
 
-**VPN control** sits under the Tailscale row: one card per machine running the [WBs-VPN-Dashboard](https://github.com/WB2024/WBs-VPN-Dashboard) agent, with a country picker, Connect / Disconnect and kill-switch and Tailscale toggles. A connect that would leave the machine without DNS or internet is rolled back automatically.
+**VPN control** sits under the Tailscale row: one card per machine running the [WBs-VPN-Dashboard](https://github.com/WB2024/WBs-VPN-Dashboard) agent, with a country picker, Connect / Disconnect, kill-switch and Tailscale toggles and a DNS mode (keep local names or the Pi-holes working while connected). A connect that would leave the machine without DNS or internet is rolled back automatically.
 
 ![Networking](images/08-networking.jpg)
 
