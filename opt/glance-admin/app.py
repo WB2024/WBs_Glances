@@ -827,6 +827,17 @@ class H(BaseHTTPRequestHandler):
             except (urllib.error.URLError, OSError):
                 return self._send(502, {"error": "VPN panel unreachable"})
 
+        if path == "/api/remote/hosts" and method == "GET":
+            import remote
+            if not remote.configured():
+                return self._send(503, {"error": "Termix not configured (TERMIX_URL / TERMIX_API_KEY)"})
+            try:
+                return self._send(200, remote.hosts())
+            except ValueError as e:
+                return self._send(502, {"error": str(e)})
+            except (urllib.error.URLError, OSError):
+                return self._send(502, {"error": "Termix unreachable"})
+
         if path == "/api/channels":
             if method == "GET":
                 with _lock:

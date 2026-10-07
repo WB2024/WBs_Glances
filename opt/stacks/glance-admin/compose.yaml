@@ -52,6 +52,8 @@ services:
       - NPM_PASS=${NPM_PASS}
       - VPN_URL=http://host.docker.internal:3010   # wbs-vpn-dashboard panel (stacks/wbs-vpn-dashboard)
       - VPN_KEY=${VPN_KEY}
+      - TERMIX_URL=http://host.docker.internal:8080   # Termix (stacks/termix): host list for the Remote tab
+      - TERMIX_API_KEY=${TERMIX_API_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

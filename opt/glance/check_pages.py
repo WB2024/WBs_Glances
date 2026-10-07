@@ -1,5 +1,5 @@
 import re, html, urllib.request, sys
-for p in ("home", "downloads", "audio", "video", "infra", "networking", "tools", "dev", "shopping", "cameras", "news", "video-news", "bookmarks", "media", "feeds"):
+for p in ("home", "downloads", "audio", "video", "infra", "networking", "remote", "tools", "dev", "shopping", "cameras", "news", "video-news", "bookmarks", "media", "feeds"):
     h = urllib.request.urlopen("http://127.0.0.1:3002/api/pages/%s/content/" % p, timeout=60).read().decode("utf-8", "ignore")
     print("==", p, len(h), "bytes, widget-error occurrences:", h.count("widget-error"))
     for m in re.finditer(r'widget-error', h):

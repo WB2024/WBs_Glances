@@ -477,3 +477,21 @@ i.wb-cat { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius
 .wb-vpn-msg { min-height: 1.4rem; margin-top: 0.4rem; }
 .wb-vpn-dns { padding: 0.2rem 0.4rem; background: var(--color-widget-background); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; }
 .wb-vpn-dns:disabled { opacity: 0.45; }
+
+/* Remote page: Termix terminal (iframe) + remote desktop list */
+.wb-rem-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.wb-rem-row { display: flex; align-items: center; gap: 0.7rem; min-width: 0; padding: 0.55rem 0.8rem; text-decoration: none; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); }
+.wb-rem-row:hover { border-color: var(--color-primary); }
+.wb-rem-main { flex: 1; min-width: 0; }
+.wb-rem-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem; }
+.wb-rem-sel, .wb-rem-btn { padding: 0.45rem 0.8rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; }
+.wb-rem-sel { flex: 1; min-width: 24rem; }
+.wb-rem-btn { cursor: pointer; }
+.wb-rem-btn:hover, .wb-rem-sel:hover:not(:disabled) { border-color: var(--color-primary); }
+.wb-rem-go { border-color: var(--color-primary); color: var(--color-text-highlight); }
+.wb-rem-sel:disabled { opacity: 0.5; }
+.wb-rem-stage { display: flex; align-items: center; justify-content: center; height: 68vh; min-height: 42rem; background: #0a0a0a; border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); overflow: hidden; }
+.wb-rem-stage:fullscreen { height: 100vh; border: 0; border-radius: 0; }
+.wb-rem-frame { width: 100%; height: 100%; border: 0; background: #000; }
+.wb-rem-hint { padding: 2rem; text-align: center; }
+.wb-rem-msg { min-height: 1.4rem; margin-top: 0.4rem; }

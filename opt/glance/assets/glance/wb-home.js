@@ -1093,8 +1093,100 @@
     poll(10);
   }
 
+  /* ------------------------------------------------------------------ REMOTE (SSH terminal + remote desktops through Termix)
+     glance-admin /api/remote/hosts lists the hosts defined in Termix (add a host there and it appears here). The terminal is Termix's
+     standalone terminal view in an iframe (?view=terminal&hostId=N); a desktop opens Termix's standalone viewer in a new tab
+     (?view=vnc|rdp&hostId=N). Termix must be opened by the SAME hostname as Glance (its login cookie is per host), so the base URL is
+     built from location.hostname. The iframe is sandboxed without allow-modals, so Termix's "leave this page?" prompt cannot appear. */
+  var remoteState = { at: 0, p: null };
+  function remoteHosts() {
+    if (remoteState.p && Date.now() - remoteState.at < 20000) return remoteState.p;
+    remoteState.at = Date.now();
+    remoteState.p = api('GET', '/api/remote/hosts');
+    remoteState.p.catch(function () { remoteState.p = null; });
+    return remoteState.p;
+  }
+  function termixUrl(d, view, id) { return location.protocol + '//' + location.hostname + ':' + (d.termix_port || 8080) + '/?view=' + view + '&hostId=' + id; }
+  function upClass(x) { return x.up === true ? 'color-positive' : x.up === false ? 'color-negative' : 'color-subdue'; }
+
+  function initRemoteDesktops(node) {
+    var list = h('div', 'wb-rem-list'), msg = h('div', 'size-h6 color-subdue wb-rem-msg');
+    node.appendChild(list); node.appendChild(msg);
+    function render(d) {
+      var rows = d.hosts.filter(function (x) { return x.kind === 'desktop'; });
+      list.textContent = ''; msg.textContent = '';
+      rows.forEach(function (x) {
+        var a = h('a', 'wb-rem-row');
+        a.href = termixUrl(d, x.protocol === 'rdp' ? 'rdp' : 'vnc', x.id); a.target = '_blank'; a.rel = 'noopener';
+        a.title = 'Open ' + x.name + ' in a new tab (press F11 there for full screen)';
+        var main = h('div', 'wb-rem-main');
+        main.appendChild(h('div', 'color-highlight text-truncate', x.name));
+        main.appendChild(h('div', 'size-h6 color-subdue text-truncate', String(x.protocol).toUpperCase() + ' · ' + x.address + ':' + x.port));
+        a.appendChild(h('span', upClass(x), '●')); a.appendChild(main); a.appendChild(h('span', 'size-h6 color-primary', 'Open ↗'));
+        list.appendChild(a);
+      });
+      if (!rows.length) list.appendChild(h('div', 'size-h6 color-subdue', 'No remote desktops in Termix yet. Add a VNC or RDP host there and it appears here.'));
+    }
+    function load() {
+      remoteHosts().then(render).catch(function (e) { msg.className = 'size-h6 color-negative wb-rem-msg'; msg.textContent = 'Termix list unavailable (' + e.message + ')'; });
+    }
+    load();
+    node.__wbTimer = setInterval(function () { if (!document.body.contains(node)) clearInterval(node.__wbTimer); else load(); }, 30000);
+  }
+
+  function initRemoteTerminal(node) {
+    var bar = h('div', 'wb-rem-bar'), sel = h('select', 'wb-rem-sel'); sel.disabled = true;
+    function btn(label, cls) { var b = h('button', 'wb-rem-btn' + (cls ? ' ' + cls : ''), label); b.type = 'button'; return b; }
+    var go = btn('Connect', 'wb-rem-go'), pop = btn('Pop out ↗'), files = btn('Files ↗'), full = btn('Full screen'), shut = btn('Close');
+    [sel, go, pop, files, full, shut].forEach(function (e) { bar.appendChild(e); });
+    var stage = h('div', 'wb-rem-stage'), hint = h('div', 'size-h6 color-subdue wb-rem-hint', 'Pick a host and press Connect.');
+    stage.appendChild(hint);
+    var info = h('div', 'size-h6 color-subdue wb-rem-msg');
+    node.appendChild(bar); node.appendChild(stage); node.appendChild(info);
+    var data = null, frame = null;
+
+    function cur() { var id = parseInt(sel.value, 10); return data && id ? data.hosts.filter(function (x) { return x.id === id; })[0] : null; }
+    function describe() { var x = cur(); info.className = 'size-h6 color-subdue wb-rem-msg'; info.textContent = x ? x.name + ' · ' + x.address + ':' + x.port + ' · ' + (x.up === true ? 'reachable' : x.up === false ? 'not answering' : 'not checked') : ''; }
+    function close() { if (frame) { frame.src = 'about:blank'; frame.remove(); frame = null; } stage.textContent = ''; stage.appendChild(hint); }
+    function connect() {
+      var x = cur(); if (!x) return;
+      close();
+      frame = document.createElement('iframe');
+      frame.className = 'wb-rem-frame'; frame.title = x.name;
+      frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads');
+      frame.setAttribute('allow', 'clipboard-read; clipboard-write; fullscreen');
+      frame.src = termixUrl(data, 'terminal', x.id);
+      stage.textContent = ''; stage.appendChild(frame);
+      try { localStorage.setItem('wbRemoteHost', String(x.id)); } catch (e) { /* ignore */ }
+    }
+    go.addEventListener('click', connect);
+    sel.addEventListener('change', function () { describe(); if (frame) connect(); });   // switching host while connected reconnects
+    shut.addEventListener('click', close);
+    pop.addEventListener('click', function () { var x = cur(); if (x) window.open(termixUrl(data, 'terminal', x.id), '_blank', 'noopener'); });
+    files.addEventListener('click', function () { var x = cur(); if (x) window.open(termixUrl(data, 'file-manager', x.id), '_blank', 'noopener'); });
+    full.addEventListener('click', function () { if (stage.requestFullscreen) stage.requestFullscreen().catch(function () { /* ignore */ }); });
+
+    function fill(d) {
+      data = d;
+      var keep = sel.value, last = ''; try { last = localStorage.getItem('wbRemoteHost') || ''; } catch (e) { /* ignore */ }
+      var ssh = d.hosts.filter(function (x) { return x.kind === 'ssh'; }), groups = {};
+      sel.textContent = '';
+      var ph = h('option', '', ssh.length ? 'Choose a host...' : 'No SSH hosts in Termix'); ph.value = ''; sel.appendChild(ph);
+      ssh.forEach(function (x) {
+        var key = x.folder || 'Other';
+        if (!groups[key]) { groups[key] = h('optgroup'); groups[key].label = key; sel.appendChild(groups[key]); }
+        var o = h('option', '', x.name + '  (' + x.address + ')'); o.value = String(x.id); groups[key].appendChild(o);
+      });
+      sel.value = keep || last || ''; if (sel.value === '' && last) sel.value = '';
+      sel.disabled = !ssh.length; describe();
+    }
+    function load() { remoteHosts().then(fill).catch(function (e) { info.className = 'size-h6 color-negative wb-rem-msg'; info.textContent = 'Termix list unavailable (' + e.message + ')'; }); }
+    load();
+    node.__wbTimer = setInterval(function () { if (!document.body.contains(node)) { clearInterval(node.__wbTimer); } else if (document.activeElement !== sel) { remoteHosts().then(function (d) { data = d; }).catch(function () { /* keep the last list */ }); } }, 60000);
+  }
+
   /* ------------------------------------------------------------------ boot */
-  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks, vpn: initVpn };
+  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks, vpn: initVpn, 'remote-desktops': initRemoteDesktops, 'remote-terminal': initRemoteTerminal };
   var pending = false;
   function scan() {
     pending = false;

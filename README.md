@@ -1,6 +1,6 @@
 # WB's Glances
 
-A self-hosted homelab dashboard built on [Glance](https://github.com/glanceapp/glance): thirteen tabs, a small companion service that
+A self-hosted homelab dashboard built on [Glance](https://github.com/glanceapp/glance): fourteen tabs, a small companion service that
 adds the things Glance does not do (editable bookmarks, notes, a to-do list, add/remove video channels and news feeds, cross-tab search,
 cached summaries), PIN-locked "private" widgets, and read-only host agents. Everything is plain YAML, a few Python scripts and
 three small front-end files, and **this repo is both the showcase and the backup**: clone it, fill in a `.env`, run one script.
@@ -16,7 +16,7 @@ three small front-end files, and **this repo is both the showcase and the backup
 
 | | |
 |---|---|
-| **13 tabs** | Home, Downloads, Audio, Video, Infra, Networking, Tools, Dev, Shopping, Cameras, News Feeds, Video News Feed, Bookmarks |
+| **14 tabs** | Home, Downloads, Audio, Video, Infra, Networking, Remote, Tools, Dev, Shopping, Cameras, News Feeds, Video News Feed, Bookmarks |
 | **Find** | one search box that finds anything on *any* tab, jumps to it and highlights the match (`/` focuses it) |
 | **Per-engine search bars** | SearXNG, Startpage, YouTube, Reddit, MusicBrainz, GitHub, and more: one click each |
 | **Notes and to-do** | saved on the server, so they follow you between devices |

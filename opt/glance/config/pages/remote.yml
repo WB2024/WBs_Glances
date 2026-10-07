@@ -1,0 +1,18 @@
+- name: Remote
+  slug: remote
+  width: wide
+  columns:
+    - size: small
+      widgets:
+        - type: html
+          title: Remote desktops
+          title-url: http://${HOST_SVC}:8080
+          source: |
+            <div data-wb="remote-desktops" data-wb-noindex></div>
+    - size: full
+      widgets:
+        - type: html
+          title: SSH terminal
+          title-url: http://${HOST_SVC}:8080
+          source: |
+            <div data-wb="remote-terminal" data-wb-noindex></div>
