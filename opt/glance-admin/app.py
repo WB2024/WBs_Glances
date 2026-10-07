@@ -710,7 +710,7 @@ class H(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-WB-VPN")
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
@@ -810,6 +810,22 @@ class H(BaseHTTPRequestHandler):
             if st["data"] is None:
                 return self._send(503, {"error": "not cached yet", "detail": st["err"]})
             return self._send(200, st["data"])
+
+        if path in ("/api/vpn/summary", "/api/vpn/command"):
+            import urllib.error
+            import vpn
+            if not vpn.configured():
+                return self._send(503, {"error": "VPN panel not configured (VPN_URL / VPN_KEY)"})
+            try:
+                if path == "/api/vpn/summary" and method == "GET":
+                    return self._send(200, vpn.summary())
+                if path == "/api/vpn/command" and method == "POST":
+                    # Writes change network routing: browsers must come from this host and send the custom header (forces a CORS preflight)
+                    if not vpn.origin_ok(self.headers.get("Origin"), self.headers.get("Host")) or self.headers.get("X-WB-VPN") != "1":
+                        return self._send(403, {"error": "forbidden"})
+                    return self._send(202, vpn.command(self._body()))
+            except (urllib.error.URLError, OSError):
+                return self._send(502, {"error": "VPN panel unreachable"})
 
         if path == "/api/channels":
             if method == "GET":

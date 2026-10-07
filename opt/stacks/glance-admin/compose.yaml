@@ -50,6 +50,8 @@ services:
       - NPM_URL=http://host.docker.internal:81
       - NPM_USER=${NPM_USER}
       - NPM_PASS=${NPM_PASS}
+      - VPN_URL=http://host.docker.internal:3010   # wbs-vpn-dashboard panel (stacks/wbs-vpn-dashboard)
+      - VPN_KEY=${VPN_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

@@ -156,6 +156,12 @@
             {{ end }}
             </div>
 
+        - type: html
+          title: VPN
+          title-url: http://${HOST_SVC}:3010
+          source: |
+            <div data-wb="vpn" data-wb-noindex></div>
+
         - type: custom-api
           title: Nginx Proxy Manager
           title-url: http://${HOST_SVC}:81

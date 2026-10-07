@@ -455,3 +455,23 @@ i.wb-cat { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius
 .wb-shop-qty { flex: 1 1 4rem; }
 .wb-shop-store { flex: 1 1 5.5rem; }
 .wb-shop-date { flex: 1 1 8.5rem; }
+
+/* VPN control (Networking page): one card per managed device */
+.wb-vpn-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(34rem, 1fr)); gap: 0.6rem; }
+.wb-vpn-row { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; padding: 0.6rem 0.8rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); }
+.wb-vpn-off { opacity: 0.6; }
+.wb-vpn-top { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.wb-vpn-main { flex: 1; min-width: 0; }
+.wb-vpn-ctl { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.wb-vpn-ctl select, .wb-vpn-ctl button { padding: 0.35rem 0.6rem; background: var(--color-widget-background); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; }
+.wb-vpn-ctl select { flex: 1; min-width: 12rem; }
+.wb-vpn-ctl button { cursor: pointer; }
+.wb-vpn-ctl button:hover:not(:disabled), .wb-vpn-ctl select:hover:not(:disabled) { border-color: var(--color-primary); }
+.wb-vpn-ctl .wb-vpn-go { border-color: var(--color-primary); color: var(--color-text-highlight); }
+.wb-vpn-ctl button:disabled, .wb-vpn-ctl select:disabled { opacity: 0.45; cursor: default; }
+.wb-vpn-tgs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1rem; }
+.wb-vpn-tog { display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+.wb-vpn-tog input:disabled { cursor: default; }
+.wb-vpn-adv { flex-basis: 100%; }
+.wb-vpn-note { word-break: break-word; }
+.wb-vpn-msg { min-height: 1.4rem; margin-top: 0.4rem; }

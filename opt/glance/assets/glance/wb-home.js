@@ -991,8 +991,108 @@
     setTimeout(update, 600); setTimeout(update, 2500);      // images/thumbnails settle after load
   }
 
+  /* ------------------------------------------------------------------ VPN (per-device NordVPN control)
+     Talks to glance-admin /api/vpn/*, which forwards to wbs-vpn-dashboard. Writes send X-WB-VPN (a custom header, so a
+     page on another origin cannot trigger them). Each device runs a small agent; "busy" means a command is still running. */
+  function initVpn(node) {
+    var HDR = { 'Content-Type': 'application/json', 'X-WB-VPN': '1' };
+    var stats = h('div', 'wb-stats margin-bottom-15');
+    var list = h('div', 'wb-vpn-list');
+    var msg = h('div', 'size-h6 color-subdue wb-vpn-msg');
+    node.appendChild(stats); node.appendChild(list); node.appendChild(msg);
+    var chosen = {}, data = null, timer = null;
+
+    function say(t, bad) { msg.textContent = t; msg.className = 'size-h6 wb-vpn-msg ' + (bad ? 'color-negative' : 'color-subdue'); }
+    function pretty(c) { return String(c || '').replace(/_/g, ' '); }
+    function ago(s) { if (s == null) return 'never'; return s < 90 ? s + 's ago' : s < 5400 ? Math.round(s / 60) + 'm ago' : s < 172800 ? Math.round(s / 3600) + 'h ago' : Math.round(s / 86400) + 'd ago'; }
+    function call(method, path, body) {
+      return fetch(API + path, { method: method, headers: body ? HDR : {}, body: body ? JSON.stringify(body) : undefined })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d; }); });
+    }
+    function send(body) {
+      say('Sending...');
+      return call('POST', '/api/vpn/command', body).then(function () { say('Working...'); poll(1200); })
+        .catch(function (e) { say(e.message, true); });
+    }
+    function stat(n, label, cls) {
+      var d = h('div'), v = h('div', 'size-h3 ' + cls, String(n)); d.appendChild(v); d.appendChild(h('div', 'size-h6', label)); return d;
+    }
+    function toggle(label, on, disabled, onchange) {
+      var l = h('label', 'wb-vpn-tog size-h6'), cb = h('input'); cb.type = 'checkbox'; cb.checked = on; cb.disabled = disabled;
+      cb.addEventListener('change', function () { onchange(cb.checked); });
+      l.appendChild(cb); l.appendChild(document.createTextNode(' ' + label)); return l;
+    }
+
+    function row(d, countries) {
+      var r = h('div', 'wb-vpn-row' + (d.online ? '' : ' wb-vpn-off'));
+      var top = h('div', 'wb-vpn-top');
+      var dot = h('span', d.online ? (d.connected ? 'color-positive' : 'color-subdue') : 'color-negative', '●');
+      var main = h('div', 'wb-vpn-main');
+      main.appendChild(h('div', 'color-highlight text-truncate', d.name));
+      var sub = !d.online ? 'offline · seen ' + ago(d.seen_s)
+        : !d.nord ? 'NordVPN not installed'
+        : d.connected ? 'Connected · ' + pretty(d.country) + (d.city ? ', ' + d.city : '') + (d.ip ? ' · ' + d.ip : '')
+        : 'Disconnected';
+      main.appendChild(h('div', 'size-h6 color-subdue text-truncate', sub));
+      top.appendChild(dot); top.appendChild(main); r.appendChild(top);
+
+      var usable = d.online && d.nord;
+      var ctl = h('div', 'wb-vpn-ctl');
+      var sel = h('select');
+      countries.forEach(function (c) { var o = h('option', '', pretty(c)); o.value = c; sel.appendChild(o); });
+      sel.value = chosen[d.id] || (d.country ? d.country.replace(/ /g, '_') : 'United_Kingdom');
+      if (!sel.value) sel.selectedIndex = 0;
+      sel.disabled = !usable;
+      sel.addEventListener('change', function () { chosen[d.id] = sel.value; });
+      var go = h('button', 'wb-vpn-go', d.connected ? 'Switch' : 'Connect'); go.type = 'button'; go.disabled = !usable || d.busy;
+      go.addEventListener('click', function () { chosen[d.id] = sel.value; send({ id: d.id, type: 'connect', country: sel.value }); });
+      var stop = h('button', '', 'Disconnect'); stop.type = 'button'; stop.disabled = !usable || d.busy || !d.connected;
+      stop.addEventListener('click', function () { send({ id: d.id, type: 'disconnect' }); });
+      ctl.appendChild(sel); ctl.appendChild(go); ctl.appendChild(stop); r.appendChild(ctl);
+
+      var tg = h('div', 'wb-vpn-tgs');
+      tg.appendChild(toggle('Kill switch', d.kill_switch, !usable || d.busy || (!d.connected && !d.kill_switch), function (v) { send({ id: d.id, type: 'killswitch', value: v ? 'on' : 'off' }); }));
+      tg.appendChild(toggle('Tailscale', d.tailscale === 'up', !d.online || d.busy || d.tailscale === 'absent', function (v) { send({ id: d.id, type: 'tailscale', value: v ? 'on' : 'off' }); }));
+      var adv = h('details', 'wb-fold wb-vpn-adv'), sm = h('summary', 'size-h6', 'Advanced');
+      adv.appendChild(sm);
+      adv.appendChild(toggle('Pi-hole DNS while connected (experimental: reverts itself if DNS breaks)', d.pihole_dns, !usable || d.busy, function (v) { send({ id: d.id, type: 'pihole_dns', value: v ? 'on' : 'off' }); }));
+      tg.appendChild(adv); r.appendChild(tg);
+
+      var note = null;
+      if (d.busy) note = ['Working...', false];
+      else if (d.error) note = [d.error, true];
+      else if (d.last) note = [d.last.message + ' · ' + ago(d.last.age_s), !d.last.ok];
+      if (note) r.appendChild(h('div', 'size-h6 wb-vpn-note ' + (note[1] ? 'color-negative' : 'color-subdue'), note[0]));
+      return r;
+    }
+
+    function render() {
+      if (!data) return;
+      stats.textContent = '';
+      stats.appendChild(stat(data.online, 'ONLINE', 'color-positive'));
+      stats.appendChild(stat(data.connected, 'ON VPN', 'color-highlight'));
+      stats.appendChild(stat(data.total, 'DEVICES', 'color-highlight'));
+      list.textContent = '';
+      data.devices.forEach(function (d) { list.appendChild(row(d, data.countries)); });
+      if (!data.devices.length) list.appendChild(h('div', 'size-h6 color-subdue', 'No devices yet. Add one in the VPN panel.'));
+    }
+    function busy() { return data && data.devices.some(function (d) { return d.busy; }); }
+    function poll(ms) {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        if (!document.body.contains(node)) return;
+        var a = document.activeElement;
+        if (a && node.contains(a) && a.tagName === 'SELECT') { poll(2000); return; }      // do not close an open dropdown
+        call('GET', '/api/vpn/summary').then(function (d) { data = d; render(); if (msg.className.indexOf('negative') < 0 && !busy()) say(''); })
+          .catch(function () { say('VPN panel unreachable', true); })
+          .then(function () { poll(busy() ? 1500 : 6000); });
+      }, ms);
+    }
+    poll(10);
+  }
+
   /* ------------------------------------------------------------------ boot */
-  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks };
+  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks, vpn: initVpn };
   var pending = false;
   function scan() {
     pending = false;

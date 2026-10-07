@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generates /opt/glance/config/pages/networking.yml
-  rows: network topology (moved from the old Infra page) | Pi-hole 1 + 2 | Tailscale mesh | Nginx Proxy Manager
+  rows: network topology (moved from the old Infra page) | Pi-hole 1 + 2 | Tailscale mesh | VPN control | Nginx Proxy Manager
   side: routers and switches
 Re-runnable: python3 /opt/glance/tools/gen_networking.py [output-path]"""
 import glob
@@ -65,6 +65,13 @@ tailscale = """        - type: custom-api
             </div>
 """.replace("@GA@", GA)
 
+vpn = """        - type: html
+          title: VPN
+          title-url: http://${HOST_SVC}:3010
+          source: |
+            <div data-wb="vpn" data-wb-noindex></div>
+"""
+
 npm = """        - type: custom-api
           title: Nginx Proxy Manager
           title-url: http://${HOST_SVC}:81
@@ -112,7 +119,7 @@ routers = """        - type: monitor
 """
 
 page = "- name: Networking\n  slug: networking\n  width: wide\n  columns:\n    - size: full\n      widgets:\n"
-page += topology + "\n" + pihole_split + "\n" + block(tailscale, 8) + "\n" + block(npm, 8) + "\n"
+page += topology + "\n" + pihole_split + "\n" + block(tailscale, 8) + "\n" + vpn + "\n" + block(npm, 8) + "\n"
 page += "    - size: small\n      widgets:\n" + routers
 
 open(OUT, "w", encoding="utf-8").write(page)
