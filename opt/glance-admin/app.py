@@ -14,6 +14,7 @@ import random
 import re
 import threading
 import time
+import urllib.error
 import urllib.request
 import uuid
 from html.parser import HTMLParser
@@ -812,7 +813,6 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, st["data"])
 
         if path in ("/api/vpn/summary", "/api/vpn/command"):
-            import urllib.error
             import vpn
             if not vpn.configured():
                 return self._send(503, {"error": "VPN panel not configured (VPN_URL / VPN_KEY)"})
