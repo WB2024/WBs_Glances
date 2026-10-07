@@ -838,6 +838,21 @@ class H(BaseHTTPRequestHandler):
             except (urllib.error.URLError, OSError):
                 return self._send(502, {"error": "Termix unreachable"})
 
+        if path == "/api/remote/metrics" and method == "GET":
+            import remote
+            if not remote.configured():
+                return self._send(503, {"error": "Termix not configured (TERMIX_URL / TERMIX_API_KEY)"})
+            try:
+                hid = int((parse_qs(u.query).get("id") or [""])[0])
+            except (ValueError, TypeError):
+                return self._send(400, {"error": "bad id"})
+            try:
+                return self._send(200, remote.metrics(hid))
+            except ValueError as e:
+                return self._send(502, {"error": str(e)})
+            except (urllib.error.URLError, OSError):
+                return self._send(502, {"error": "Termix unreachable"})
+
         if path == "/api/channels":
             if method == "GET":
                 with _lock:

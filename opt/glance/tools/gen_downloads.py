@@ -230,6 +230,44 @@ sab = """        - type: custom-api
             </ul>
 """
 
+
+qbit = """        - type: custom-api
+          title: qBittorrent
+          title-url: http://${HOST_SVC}:8082
+          cache: 20s
+          url: http://${HOST_SVC}:8088/api/torrents/live
+          template: |
+            {{ if .JSON.Bool "online" }}
+            <div class="flex justify-between items-center margin-bottom-10">
+              <div>Torrents <span class="color-positive">connected</span></div>
+              <div class="size-h6 color-subdue">qBittorrent {{ .JSON.String "version" }}</div>
+            </div>
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 {{ if gt (.JSON.Float "down") 0.0 }}color-positive{{ else }}color-highlight{{ end }}">{{ printf "%.1f" (div (.JSON.Float "down") 1048576.0) }}<span class="size-h6"> MB/s</span></div><div class="size-h6">DOWN</div></div>
+              <div><div class="size-h3 {{ if gt (.JSON.Float "up") 0.0 }}color-primary{{ else }}color-highlight{{ end }}">{{ printf "%.1f" (div (.JSON.Float "up") 1048576.0) }}<span class="size-h6"> MB/s</span></div><div class="size-h6">UP</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "counts.downloading" }}</div><div class="size-h6">DOWNLOADING</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "counts.seeding" }}</div><div class="size-h6">SEEDING</div></div>
+              <div><div class="size-h3 color-highlight">{{ printf "%.1f" (div (.JSON.Float "free") 1099511627776.0) }}<span class="size-h6"> TB</span></div><div class="size-h6">FREE</div></div>
+            </div>
+            <ul class="list list-gap-8 size-h6 margin-bottom-10">
+            {{ range .JSON.Array "torrents" }}
+              {{ $s := .String "state" }}
+              <li>
+                <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "name" }}</span><span class="shrink-0 {{ if or (eq $s "error") (eq $s "missingFiles") }}color-negative{{ else }}color-subdue{{ end }}">{{ if or (eq $s "error") (eq $s "missingFiles") }}error{{ else if or (eq $s "uploading") (eq $s "stalledUP") (eq $s "forcedUP") (eq $s "queuedUP") (eq $s "checkingUP") }}seeding{{ else if or (eq $s "pausedDL") (eq $s "pausedUP") (eq $s "stoppedDL") (eq $s "stoppedUP") }}paused{{ else if or (eq $s "metaDL") (eq $s "forcedMetaDL") (eq $s "checkingDL") (eq $s "queuedDL") }}waiting{{ else }}{{ printf "%.0f" (.Float "percent") }}%{{ if gt (.Float "down") 0.0 }} &middot; {{ printf "%.1f" (div (.Float "down") 1048576.0) }} MB/s{{ end }}{{ end }}</span></div>
+                {{ if not (or (eq $s "uploading") (eq $s "stalledUP") (eq $s "forcedUP") (eq $s "queuedUP")) }}<div class="wb-progress"><div style="width:{{ printf "%.0f" (.Float "percent") }}%"></div></div>{{ end }}
+              </li>
+            {{ else }}
+              <li class="color-subdue">No torrents</li>
+            {{ end }}
+            </ul>
+            {{ if gt (.JSON.Int "counts.errored") 0 }}<p class="size-h6 color-negative">{{ .JSON.Int "counts.errored" }} torrent(s) in error</p>{{ end }}
+            <p class="size-h6 color-subdue">{{ .JSON.Int "counts.total" }} torrent(s) &middot; added by RustyBox, imported into the Xbox library when they finish</p>
+            {{ else }}
+            <p class="color-negative">qBittorrent isn't responding.</p>
+            <p class="size-h6 color-subdue">{{ .JSON.String "message" }}</p>
+            {{ end }}
+"""
+
 # second SABnzbd (devuan): same template as the main one, inside the PIN-locked section with Private A
 sab_devuan = (sab.replace("${HOST_SVC}", "${HOST_DEVUAN}")
               .replace("${SABNZBD_KEY}", "${DEVUAN_SAB_KEY}")
@@ -330,7 +368,7 @@ def block(b, n):
 
 page = "- name: Downloads\n  slug: downloads\n  width: wide\n  columns:\n    - size: full\n      widgets:\n"
 page += "        - type: split-column\n          max-columns: 2\n          widgets:\n"
-page += block(sab, 12) + "\n" + block(seerr, 12) + "\n"
+page += block(sab, 12) + "\n" + block(qbit, 12) + "\n" + block(seerr, 12) + "\n"
 page += block(radarr, 8) + "\n" + block(sonarr, 8) + "\n" + block(lidarr, 8) + "\n" + block(priva, 8) + "\n" + block(sab_devuan, 8) + "\n"
 page += "    - size: small\n      widgets:\n" + block(slskd, 8) + "\n" + block(prowlarr, 8)
 

@@ -479,19 +479,42 @@ i.wb-cat { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius
 .wb-vpn-dns:disabled { opacity: 0.45; }
 
 /* Remote page: Termix terminal (iframe) + remote desktop list */
-.wb-rem-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.wb-rem-row { display: flex; align-items: center; gap: 0.7rem; min-width: 0; padding: 0.55rem 0.8rem; text-decoration: none; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); }
-.wb-rem-row:hover { border-color: var(--color-primary); }
+/* Remote workspace */
+.wb-rem-ws { display: grid; grid-template-columns: 19rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+.wb-rem-side { display: flex; flex-direction: column; gap: 0.5rem; max-height: 82vh; }
+.wb-rem-hosts { display: flex; flex-direction: column; gap: 0.35rem; overflow-y: auto; min-height: 0; }
+.wb-rem-search, .wb-rem-sel, .wb-rem-btn { padding: 0.45rem 0.8rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; }
+.wb-rem-gh { margin-top: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.wb-rem-row { display: flex; align-items: center; gap: 0.6rem; min-width: 0; width: 100%; padding: 0.45rem 0.7rem; text-align: left; font: inherit; cursor: pointer; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: inherit; }
+.wb-rem-row:hover, .wb-rem-btn:hover, .wb-rem-search:focus { border-color: var(--color-primary); outline: none; }
+.wb-rem-row.on { border-color: var(--color-primary); }
+.wb-rem-row.off { opacity: 0.55; }
 .wb-rem-main { flex: 1; min-width: 0; }
-.wb-rem-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem; }
-.wb-rem-sel, .wb-rem-btn { padding: 0.45rem 0.8rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; }
-.wb-rem-sel { flex: 1; min-width: 24rem; }
+.wb-rem-main2 { min-width: 0; }
+.wb-rem-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.6rem; min-height: 2rem; }
+.wb-rem-chip { display: inline-flex; align-items: center; border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); background: var(--color-widget-background-highlight); }
+.wb-rem-chip.on { border-color: var(--color-primary); }
+.wb-rem-chip.two { border-style: dashed; border-color: var(--color-primary); }
+.wb-rem-chipbtn, .wb-rem-chipx, .wb-rem-tab { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0.3rem 0.6rem; }
+.wb-rem-chipx:hover { color: var(--color-negative); }
+.wb-rem-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.wb-rem-tools { display: flex; gap: 0.4rem; }
+.wb-rem-tabs { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--color-widget-content-border); }
+.wb-rem-tab { padding: 0.45rem 0.9rem; border-bottom: 2px solid transparent; color: var(--color-text-subdue); }
+.wb-rem-tab:hover { color: var(--color-text-highlight); }
+.wb-rem-tab.on { color: var(--color-text-highlight); border-bottom-color: var(--color-primary); }
+.wb-rem-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.2rem; margin-bottom: 0.5rem; min-height: 0; }
+.wb-rem-stat { display: inline-flex; align-items: center; gap: 0.4rem; }
+.wb-rem-track { width: 5rem; height: 0.45rem; border-radius: 1rem; background: var(--color-widget-content-border); overflow: hidden; }
+.wb-rem-fill { display: block; height: 100%; background: var(--color-positive); }
+.wb-rem-fill.mid { background: var(--color-primary); }
+.wb-rem-fill.hi { background: var(--color-negative); }
 .wb-rem-btn { cursor: pointer; }
-.wb-rem-btn:hover, .wb-rem-sel:hover:not(:disabled) { border-color: var(--color-primary); }
 .wb-rem-go { border-color: var(--color-primary); color: var(--color-text-highlight); }
-.wb-rem-sel:disabled { opacity: 0.5; }
-.wb-rem-stage { display: flex; align-items: center; justify-content: center; height: 68vh; min-height: 42rem; background: #0a0a0a; border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); overflow: hidden; }
+.wb-rem-stage { display: flex; align-items: center; justify-content: center; height: 72vh; min-height: 38rem; background: #0a0a0a; border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); overflow: hidden; }
+.wb-rem-stage.split { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; align-items: stretch; }
 .wb-rem-stage:fullscreen { height: 100vh; border: 0; border-radius: 0; }
 .wb-rem-frame { width: 100%; height: 100%; border: 0; background: #000; }
-.wb-rem-hint { padding: 2rem; text-align: center; }
+.wb-rem-hint { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; padding: 2rem; text-align: center; }
 .wb-rem-msg { min-height: 1.4rem; margin-top: 0.4rem; }
+@media (max-width: 900px) { .wb-rem-ws { grid-template-columns: 1fr; } .wb-rem-side { max-height: 16rem; } .wb-rem-stage.split { grid-template-columns: 1fr; } .wb-rem-stage { height: 65vh; min-height: 24rem; } }

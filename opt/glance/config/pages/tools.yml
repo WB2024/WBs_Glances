@@ -4,51 +4,97 @@
   columns:
     - size: full
       widgets:
-        - type: custom-api
-          title: RustyDisc
-          title-url: http://${HOST_SVC}:8087
-          cache: 30s
-          url: http://${HOST_SVC}:8087/api/library
-          subrequests:
-            jobs:
-              url: http://${HOST_SVC}:8087/api/jobs
-            status:
-              url: http://${HOST_SVC}:8087/api/status
-            sticks:
-              url: http://${HOST_SVC}:8087/api/stick/targets
-          template: |
-            {{ $lib := .JSON.Array "entries" }}
-            {{ $jobs := (.Subrequest "jobs").JSON.Array "" }}
-            {{ $tracks := 0 }}{{ $bytes := 0.0 }}{{ $ar := 0 }}
-            {{ range $lib }}
-              {{ $tracks = add $tracks (.Int "audio_files") }}
-              {{ $bytes = add $bytes (.Float "total_bytes") }}
-              {{ if and (.Bool "accuraterip.found") (eq (.Int "accuraterip.verified") (.Int "accuraterip.total")) }}{{ $ar = add $ar 1 }}{{ end }}
-            {{ end }}
-            <div class="flex justify-between items-center margin-bottom-10">
-              <div>Drive <span class="color-subdue">{{ (.Subrequest "status").JSON.String "default_device" }}</span></div>
-              <div class="size-h6 color-subdue">v{{ (.Subrequest "status").JSON.String "version" }}</div>
-            </div>
-            <div class="wb-stats margin-bottom-10">
-              <div><div class="size-h3 color-highlight">{{ len $lib }}</div><div class="size-h6">ALBUMS</div></div>
-              <div><div class="size-h3 color-highlight">{{ $tracks | formatNumber }}</div><div class="size-h6">TRACKS</div></div>
-              <div><div class="size-h3 color-highlight">{{ printf "%.1f" (div $bytes 1073741824.0) }}<span class="size-h6"> GB</span></div><div class="size-h6">SIZE</div></div>
-              <div><div class="size-h3 color-positive">{{ $ar }}</div><div class="size-h6">AR ✓</div></div>
-            </div>
-            <ul class="list list-gap-8 size-h6">
-            {{ $running := 0 }}
-            {{ range $jobs }}
-              {{ if eq (.String "status") "running" }}
-              {{ $running = add $running 1 }}
-              <li>
-                <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "title" }}</span><span class="color-primary shrink-0">{{ printf "%.0f" (.Float "pct") }}%</span></div>
-                <div class="color-subdue text-truncate">{{ .String "step" }}</div>
-                <div class="wb-progress"><div style="width:{{ printf "%.0f" (.Float "pct") }}%"></div></div>
-              </li>
-              {{ end }}
-            {{ end }}
-            {{ if eq $running 0 }}<li class="color-subdue">Idle · {{ len ((.Subrequest "sticks").JSON.Array "targets") }} stick(s) connected</li>{{ end }}
-            </ul>
+        - type: split-column
+          max-columns: 2
+          widgets:
+            - type: custom-api
+              title: RustyDisc
+              title-url: http://${HOST_SVC}:8087
+              cache: 30s
+              url: http://${HOST_SVC}:8087/api/library
+              subrequests:
+                jobs:
+                  url: http://${HOST_SVC}:8087/api/jobs
+                status:
+                  url: http://${HOST_SVC}:8087/api/status
+                sticks:
+                  url: http://${HOST_SVC}:8087/api/stick/targets
+              template: |
+                {{ $lib := .JSON.Array "entries" }}
+                {{ $jobs := (.Subrequest "jobs").JSON.Array "" }}
+                {{ $tracks := 0 }}{{ $bytes := 0.0 }}{{ $ar := 0 }}
+                {{ range $lib }}
+                  {{ $tracks = add $tracks (.Int "audio_files") }}
+                  {{ $bytes = add $bytes (.Float "total_bytes") }}
+                  {{ if and (.Bool "accuraterip.found") (eq (.Int "accuraterip.verified") (.Int "accuraterip.total")) }}{{ $ar = add $ar 1 }}{{ end }}
+                {{ end }}
+                <div class="flex justify-between items-center margin-bottom-10">
+                  <div>Drive <span class="color-subdue">{{ (.Subrequest "status").JSON.String "default_device" }}</span></div>
+                  <div class="size-h6 color-subdue">v{{ (.Subrequest "status").JSON.String "version" }}</div>
+                </div>
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ len $lib }}</div><div class="size-h6">ALBUMS</div></div>
+                  <div><div class="size-h3 color-highlight">{{ $tracks | formatNumber }}</div><div class="size-h6">TRACKS</div></div>
+                  <div><div class="size-h3 color-highlight">{{ printf "%.1f" (div $bytes 1073741824.0) }}<span class="size-h6"> GB</span></div><div class="size-h6">SIZE</div></div>
+                  <div><div class="size-h3 color-positive">{{ $ar }}</div><div class="size-h6">AR ✓</div></div>
+                </div>
+                <ul class="list list-gap-8 size-h6">
+                {{ $running := 0 }}
+                {{ range $jobs }}
+                  {{ if eq (.String "status") "running" }}
+                  {{ $running = add $running 1 }}
+                  <li>
+                    <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "title" }}</span><span class="color-primary shrink-0">{{ printf "%.0f" (.Float "pct") }}%</span></div>
+                    <div class="color-subdue text-truncate">{{ .String "step" }}</div>
+                    <div class="wb-progress"><div style="width:{{ printf "%.0f" (.Float "pct") }}%"></div></div>
+                  </li>
+                  {{ end }}
+                {{ end }}
+                {{ if eq $running 0 }}<li class="color-subdue">Idle · {{ len ((.Subrequest "sticks").JSON.Array "targets") }} stick(s) connected</li>{{ end }}
+                </ul>
+
+            - type: custom-api
+              title: RustyBox
+              title-url: https://${HOST_SVC}:8443
+              cache: 30s
+              url: http://${HOST_SVC}:8088/api/summary
+              template: |
+                <div class="flex justify-between items-center margin-bottom-10">
+                  <div>Xbox 360 <span class="color-subdue">library &amp; console manager</span></div>
+                  <div class="size-h6 color-subdue">v{{ .JSON.String "version" }}</div>
+                </div>
+                <div class="wb-stats margin-bottom-10">
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "games" | formatNumber }}</div><div class="size-h6">GAMES</div></div>
+                  <div><div class="size-h3 color-highlight">{{ printf "%.2f" (div (.JSON.Float "games_bytes") 1099511627776.0) }}<span class="size-h6"> TB</span></div><div class="size-h6">LIBRARY</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "libraries" }}</div><div class="size-h6">LIBRARIES</div></div>
+                  <div><div class="size-h3 {{ if gt (.JSON.Int "duplicates") 0 }}color-primary{{ else }}color-positive{{ end }}">{{ .JSON.Int "duplicates" }}</div><div class="size-h6">DUPLICATES</div></div>
+                  <div><div class="size-h3 color-highlight">{{ .JSON.Int "wanted.waiting" }}</div><div class="size-h6">WANTED</div></div>
+                </div>
+                <ul class="list list-gap-8 size-h6 margin-bottom-10">
+                {{ $running := 0 }}
+                {{ range .JSON.Array "jobs.running" }}
+                  {{ $running = add $running 1 }}
+                  <li>
+                    <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "title" }}</span><span class="color-primary shrink-0">{{ printf "%.0f" (.Float "pct") }}%</span></div>
+                    <div class="color-subdue text-truncate">{{ .String "step" }}</div>
+                    <div class="wb-progress"><div style="width:{{ printf "%.0f" (.Float "pct") }}%"></div></div>
+                  </li>
+                {{ end }}
+                {{ if eq $running 0 }}<li class="color-subdue">Idle &middot; {{ .JSON.Int "downloads.active" }} downloading &middot; {{ .JSON.Int "downloads.importing" }} importing{{ if gt (.JSON.Int "downloads.failed") 0 }} &middot; <span class="color-negative">{{ .JSON.Int "downloads.failed" }} failed</span>{{ end }}{{ if gt (.JSON.Int "jobs.failed_24h") 0 }} &middot; <span class="color-negative">{{ .JSON.Int "jobs.failed_24h" }} job(s) failed today</span>{{ end }}</li>{{ end }}
+                </ul>
+                {{ if .JSON.Array "latest" }}
+                <div class="size-h6 color-subdue margin-bottom-5">RECENTLY ADDED</div>
+                <div class="wb-strip">
+                {{ range .JSON.Array "latest" }}
+                  <div class="wb-card">
+                    <a href="https://${HOST_SVC}:8443/#games?q={{ .String "title_id" }}" target="_blank">
+                      {{ if .String "cover" }}<img src="http://${HOST_SVC}:8088/api/covers/{{ .String "cover" }}" alt="" loading="lazy">{{ else }}<div style="aspect-ratio:3/4;display:grid;place-items:center;background:var(--color-widget-background-highlight);border-radius:var(--border-radius)">&#127918;</div>{{ end }}
+                      <div class="wb-title">{{ .String "name" }}</div>
+                    </a>
+                  </div>
+                {{ end }}
+                </div>
+                {{ end }}
 
         - type: split-column
           max-columns: 2

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generates /opt/glance/config/pages/remote.yml: the Remote tab.
-  left  : remote desktops (VNC/RDP hosts from Termix; click opens Termix's standalone viewer in a new tab)
-  right : SSH terminal (dropdown of Termix SSH hosts; Termix's terminal in an iframe, with Pop out / Files / Full screen)
-Both widgets are filled in the browser by wb-home.js (components remote-desktops and remote-terminal) from glance-admin /api/remote/hosts,
+  one workspace widget (wb-home.js component remote-workspace): host list with search / recent / online status on the left; on the right
+  open sessions, per-host tabs (Terminal, Files, Docker, Metrics, Tunnels, Tmux, or a VNC/RDP desktop), live CPU/RAM/disk, split view.
+  Every pane is one of Termix's own standalone views in an iframe. It is filled in the browser from glance-admin /api/remote/hosts,
 so adding a host in Termix adds it here with no edit to this file.
 Re-runnable: python3 /opt/glance/tools/gen_remote.py [output-path]"""
 import sys
@@ -14,20 +14,13 @@ page = """- name: Remote
   slug: remote
   width: wide
   columns:
-    - size: small
-      widgets:
-        - type: html
-          title: Remote desktops
-          title-url: @TX@
-          source: |
-            <div data-wb="remote-desktops" data-wb-noindex></div>
     - size: full
       widgets:
         - type: html
-          title: SSH terminal
+          title: Remote
           title-url: @TX@
           source: |
-            <div data-wb="remote-terminal" data-wb-noindex></div>
+            <div data-wb="remote-workspace" data-wb-noindex></div>
 """.replace("@TX@", TX)
 
 open(OUT, "w", encoding="utf-8").write(page)

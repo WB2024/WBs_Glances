@@ -1093,14 +1093,17 @@
     poll(10);
   }
 
-  /* ------------------------------------------------------------------ REMOTE (SSH terminal + remote desktops through Termix)
-     glance-admin /api/remote/hosts lists the hosts defined in Termix (add a host there and it appears here). The terminal is Termix's
-     standalone terminal view in an iframe (?view=terminal&hostId=N); a desktop opens Termix's standalone viewer in a new tab
-     (?view=vnc|rdp&hostId=N). Termix must be opened by the SAME hostname as Glance (its login cookie is per host), so the base URL is
-     built from location.hostname. The iframe is sandboxed without allow-modals, so Termix's "leave this page?" prompt cannot appear. */
+  /* ------------------------------------------------------------------ REMOTE (workspace: terminal, files, docker, tunnels, metrics, desktops through Termix)
+     glance-admin /api/remote/hosts lists the hosts defined in Termix (add a host there and it appears here) with its online status,
+     capabilities and recent use; /api/remote/metrics?id=N gives live CPU / RAM / disk for one host. Every pane is one of Termix's own
+     standalone views in an iframe (?view=terminal|file-manager|docker|tunnel|tmux_monitor|host-metrics|vnc|rdp&hostId=N), created the
+     first time its tab is opened and then kept alive (hidden, not destroyed) while you stay on this page: switching host or tab does
+     not drop a running shell. Leaving the Remote tab does end them: Glance tabs are full page loads. Termix must be opened by the SAME
+     hostname as Glance (its login cookie is per host), so the base URL is built from location.hostname. Iframes are sandboxed without
+     allow-modals, so Termix's "leave this page?" prompt cannot appear. Deep link: /remote?host=11&tab=files. */
   var remoteState = { at: 0, p: null };
-  function remoteHosts() {
-    if (remoteState.p && Date.now() - remoteState.at < 20000) return remoteState.p;
+  function remoteHosts(force) {
+    if (!force && remoteState.p && Date.now() - remoteState.at < 8000) return remoteState.p;
     remoteState.at = Date.now();
     remoteState.p = api('GET', '/api/remote/hosts');
     remoteState.p.catch(function () { remoteState.p = null; });
@@ -1108,85 +1111,242 @@
   }
   function termixUrl(d, view, id) { return location.protocol + '//' + location.hostname + ':' + (d.termix_port || 8080) + '/?view=' + view + '&hostId=' + id; }
   function upClass(x) { return x.up === true ? 'color-positive' : x.up === false ? 'color-negative' : 'color-subdue'; }
-
-  function initRemoteDesktops(node) {
-    var list = h('div', 'wb-rem-list'), msg = h('div', 'size-h6 color-subdue wb-rem-msg');
-    node.appendChild(list); node.appendChild(msg);
-    function render(d) {
-      var rows = d.hosts.filter(function (x) { return x.kind === 'desktop'; });
-      list.textContent = ''; msg.textContent = '';
-      rows.forEach(function (x) {
-        var a = h('a', 'wb-rem-row');
-        a.href = termixUrl(d, x.protocol === 'rdp' ? 'rdp' : 'vnc', x.id); a.target = '_blank'; a.rel = 'noopener';
-        a.title = 'Open ' + x.name + ' in a new tab (press F11 there for full screen)';
-        var main = h('div', 'wb-rem-main');
-        main.appendChild(h('div', 'color-highlight text-truncate', x.name));
-        main.appendChild(h('div', 'size-h6 color-subdue text-truncate', String(x.protocol).toUpperCase() + ' · ' + x.address + ':' + x.port));
-        a.appendChild(h('span', upClass(x), '●')); a.appendChild(main); a.appendChild(h('span', 'size-h6 color-primary', 'Open ↗'));
-        list.appendChild(a);
-      });
-      if (!rows.length) list.appendChild(h('div', 'size-h6 color-subdue', 'No remote desktops in Termix yet. Add a VNC or RDP host there and it appears here.'));
-    }
-    function load() {
-      remoteHosts().then(render).catch(function (e) { msg.className = 'size-h6 color-negative wb-rem-msg'; msg.textContent = 'Termix list unavailable (' + e.message + ')'; });
-    }
-    load();
-    node.__wbTimer = setInterval(function () { if (!document.body.contains(node)) clearInterval(node.__wbTimer); else load(); }, 30000);
+  var REM_TABS = [
+    { key: 'terminal', label: 'Terminal', view: 'terminal', cap: null },
+    { key: 'files', label: 'Files', view: 'file-manager', cap: 'files' },
+    { key: 'docker', label: 'Docker', view: 'docker', cap: 'docker' },
+    { key: 'metrics', label: 'Metrics', view: 'host-metrics', cap: 'metrics' },
+    { key: 'tunnels', label: 'Tunnels', view: 'tunnel', cap: 'tunnels' },
+    { key: 'tmux', label: 'Tmux', view: 'tmux_monitor', cap: 'tmux' }
+  ];
+  function remTabsFor(x) {
+    if (x.kind === 'desktop') return [{ key: 'desktop', label: x.protocol === 'rdp' ? 'Remote desktop (RDP)' : 'Remote desktop (VNC)', view: x.protocol === 'rdp' ? 'rdp' : 'vnc', cap: null }];
+    return REM_TABS.filter(function (t) { return !t.cap || (x.caps && x.caps[t.cap]); });
+  }
+  function ago(ts) {
+    if (!ts) return '';
+    var t = Date.parse(ts.replace(' ', 'T') + 'Z'); if (isNaN(t)) return '';
+    var s = Math.max(0, (Date.now() - t) / 1000);
+    return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago';
   }
 
-  function initRemoteTerminal(node) {
-    var bar = h('div', 'wb-rem-bar'), sel = h('select', 'wb-rem-sel'); sel.disabled = true;
-    function btn(label, cls) { var b = h('button', 'wb-rem-btn' + (cls ? ' ' + cls : ''), label); b.type = 'button'; return b; }
-    var go = btn('Connect', 'wb-rem-go'), pop = btn('Pop out ↗'), files = btn('Files ↗'), full = btn('Full screen'), shut = btn('Close');
-    [sel, go, pop, files, full, shut].forEach(function (e) { bar.appendChild(e); });
-    var stage = h('div', 'wb-rem-stage'), hint = h('div', 'size-h6 color-subdue wb-rem-hint', 'Pick a host and press Connect.');
-    stage.appendChild(hint);
-    var info = h('div', 'size-h6 color-subdue wb-rem-msg');
-    node.appendChild(bar); node.appendChild(stage); node.appendChild(info);
-    var data = null, frame = null;
+  function initRemoteWorkspace(node) {
+    var data = null, started = false, sessions = {}, order = [], active = null, second = null, split = false, filter = '';
+    var hostById = {};
+    function el(tag, cls, text) { return h(tag, cls, text); }
+    function btn(label, cls, title) { var b = el('button', 'wb-rem-btn' + (cls ? ' ' + cls : ''), label); b.type = 'button'; if (title) b.title = title; return b; }
 
-    function cur() { var id = parseInt(sel.value, 10); return data && id ? data.hosts.filter(function (x) { return x.id === id; })[0] : null; }
-    function describe() { var x = cur(); info.className = 'size-h6 color-subdue wb-rem-msg'; info.textContent = x ? x.name + ' · ' + x.address + ':' + x.port + ' · ' + (x.up === true ? 'reachable' : x.up === false ? 'not answering' : 'not checked') : ''; }
-    function close() { if (frame) { frame.src = 'about:blank'; frame.remove(); frame = null; } stage.textContent = ''; stage.appendChild(hint); }
-    function connect() {
-      var x = cur(); if (!x) return;
-      close();
-      frame = document.createElement('iframe');
-      frame.className = 'wb-rem-frame'; frame.title = x.name;
-      frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads');
-      frame.setAttribute('allow', 'clipboard-read; clipboard-write; fullscreen');
-      frame.src = termixUrl(data, 'terminal', x.id);
-      stage.textContent = ''; stage.appendChild(frame);
-      try { localStorage.setItem('wbRemoteHost', String(x.id)); } catch (e) { /* ignore */ }
+    var root = el('div', 'wb-rem-ws');
+    var side = el('div', 'wb-rem-side'), search = el('input', 'wb-rem-search'); search.type = 'search'; search.placeholder = 'Search hosts...'; search.setAttribute('aria-label', 'Search hosts');
+    var listEl = el('div', 'wb-rem-hosts'), sideMsg = el('div', 'size-h6 color-subdue wb-rem-msg');
+    side.appendChild(search); side.appendChild(listEl); side.appendChild(sideMsg);
+    var main = el('div', 'wb-rem-main2'), strip = el('div', 'wb-rem-strip'), head = el('div', 'wb-rem-head'), tabsEl = el('div', 'wb-rem-tabs');
+    var statsEl = el('div', 'wb-rem-stats'), stage = el('div', 'wb-rem-stage'), empty = el('div', 'wb-rem-hint');
+    stage.appendChild(empty);
+    main.appendChild(strip); main.appendChild(head); main.appendChild(tabsEl); main.appendChild(statsEl); main.appendChild(stage);
+    root.appendChild(side); root.appendChild(main); node.appendChild(root);
+
+    /* ---- sessions and panes */
+    function key(id, tab) { return id + ':' + tab; }
+    function curTab(s) { return s.tab; }
+    function ensureFrame(s, tab) {
+      var x = hostById[s.id], t = remTabsFor(x).filter(function (q) { return q.key === tab; })[0];
+      if (!t) return null;
+      if (!s.frames[tab]) {
+        var f = document.createElement('iframe');
+        f.className = 'wb-rem-frame'; f.title = x.name + ' ' + t.label;
+        f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads');
+        f.setAttribute('allow', 'clipboard-read; clipboard-write; fullscreen');
+        f.src = termixUrl(data, t.view, x.id);
+        s.frames[tab] = f; stage.appendChild(f);
+      }
+      return s.frames[tab];
     }
-    go.addEventListener('click', connect);
-    sel.addEventListener('change', function () { describe(); if (frame) connect(); });   // switching host while connected reconnects
-    shut.addEventListener('click', close);
-    pop.addEventListener('click', function () { var x = cur(); if (x) window.open(termixUrl(data, 'terminal', x.id), '_blank', 'noopener'); });
-    files.addEventListener('click', function () { var x = cur(); if (x) window.open(termixUrl(data, 'file-manager', x.id), '_blank', 'noopener'); });
-    full.addEventListener('click', function () { if (stage.requestFullscreen) stage.requestFullscreen().catch(function () { /* ignore */ }); });
+    function dropSession(id) {
+      var s = sessions[id]; if (!s) return;
+      Object.keys(s.frames).forEach(function (k) { s.frames[k].src = 'about:blank'; s.frames[k].remove(); });
+      delete sessions[id]; order = order.filter(function (i) { return i !== id; });
+      if (second === id) second = null;
+      if (active === id) { active = second || order[order.length - 1] || null; second = null; if (active === null) split = false; }
+      layout();
+    }
+    function open(id, tab) {
+      var x = hostById[id]; if (!x) return;
+      var tabs = remTabsFor(x);
+      if (!sessions[id]) { sessions[id] = { id: id, tab: tabs[0].key, frames: {} }; order.push(id); }
+      var s = sessions[id];
+      if (tab && tabs.some(function (t) { return t.key === tab; })) s.tab = tab;
+      if (active !== null && active !== id) second = active;
+      active = id;
+      try { localStorage.setItem('wbRemoteHost', String(id)); } catch (e) { /* ignore */ }
+      layout();
+      try { var f = s.frames[s.tab]; if (f) f.focus(); } catch (e) { /* ignore */ }
+    }
+    function hash() {
+      var u = new URL(location.href);
+      if (active !== null && sessions[active]) { u.searchParams.set('host', String(active)); u.searchParams.set('tab', sessions[active].tab); } else { u.searchParams.delete('host'); u.searchParams.delete('tab'); }
+      try { history.replaceState(null, '', u.toString()); } catch (e) { /* ignore */ }
+    }
 
-    function fill(d) {
-      data = d;
-      var keep = sel.value, last = ''; try { last = localStorage.getItem('wbRemoteHost') || ''; } catch (e) { /* ignore */ }
-      var ssh = d.hosts.filter(function (x) { return x.kind === 'ssh'; }), groups = {};
-      sel.textContent = '';
-      var ph = h('option', '', ssh.length ? 'Choose a host...' : 'No SSH hosts in Termix'); ph.value = ''; sel.appendChild(ph);
-      ssh.forEach(function (x) {
-        var key = x.folder || 'Other';
-        if (!groups[key]) { groups[key] = h('optgroup'); groups[key].label = key; sel.appendChild(groups[key]); }
-        var o = h('option', '', x.name + '  (' + x.address + ')'); o.value = String(x.id); groups[key].appendChild(o);
+    /* ---- main area */
+    function layout() {
+      // strip of open sessions
+      strip.textContent = '';
+      order.forEach(function (id) {
+        var x = hostById[id], s = sessions[id]; if (!x || !s) return;
+        var c = el('span', 'wb-rem-chip' + (id === active ? ' on' : '') + (split && id === second ? ' two' : ''));
+        var a = el('button', 'wb-rem-chipbtn'); a.type = 'button';
+        a.appendChild(el('span', upClass(x), '●')); a.appendChild(document.createTextNode(' ' + x.name));
+        a.addEventListener('click', function () { open(id); });
+        var cl = el('button', 'wb-rem-chipx', '×'); cl.type = 'button'; cl.title = 'Close this session'; cl.setAttribute('aria-label', 'Close ' + x.name);
+        cl.addEventListener('click', function () { dropSession(id); });
+        c.appendChild(a); c.appendChild(cl); strip.appendChild(c);
       });
-      sel.value = keep || last || ''; if (sel.value === '' && last) sel.value = '';
-      sel.disabled = !ssh.length; describe();
+      var sp = btn(split ? 'Split: on' : 'Split', split ? 'wb-rem-go' : '', 'Show the previous session beside this one');
+      sp.style.display = order.length > 1 ? '' : 'none';
+      sp.addEventListener('click', function () { split = !split; if (split && (second === null || !sessions[second])) second = order.filter(function (i) { return i !== active; })[0] || null; layout(); });
+      strip.appendChild(sp);
+
+      var s = active !== null ? sessions[active] : null, x = s ? hostById[s.id] : null;
+      head.textContent = ''; tabsEl.textContent = '';
+      if (!s || !x) {
+        stage.className = 'wb-rem-stage';
+        Object.keys(sessions).forEach(function (i) { Object.keys(sessions[i].frames).forEach(function (k) { sessions[i].frames[k].style.display = 'none'; }); });
+        empty.textContent = '';
+        empty.appendChild(el('div', 'color-highlight', 'Pick a host on the left to open it.'));
+        var last = ''; try { last = localStorage.getItem('wbRemoteHost') || ''; } catch (e) { /* ignore */ }
+        var lx = last && hostById[parseInt(last, 10)];
+        if (lx) { var rb = btn('Resume ' + lx.name, 'wb-rem-go'); rb.addEventListener('click', function () { open(lx.id); }); empty.appendChild(rb); }
+        empty.appendChild(el('div', 'size-h6 color-subdue', 'Terminal, files, Docker, metrics and desktops open inside this page; sessions stay alive while you switch between hosts.'));
+        empty.style.display = ''; statsEl.textContent = ''; hash(); renderList(); return;
+      }
+      empty.style.display = 'none';
+      var title = el('div', 'wb-rem-title');
+      title.appendChild(el('span', upClass(x), '● ')); title.appendChild(el('strong', 'color-highlight', x.name));
+      title.appendChild(el('span', 'size-h6 color-subdue', '  ' + x.address + ':' + x.port + (x.up === false ? ' · offline in Termix' : '')));
+      head.appendChild(title);
+      var tools = el('div', 'wb-rem-tools');
+      var pop = btn('Pop out ↗', '', 'Open this view in its own browser tab'), full = btn('Full screen'), rl = btn('Reload', '', 'Reload this pane'), tx = btn('Termix ↗', '', 'Open Termix itself (sign in there if a pane asks you to)');
+      pop.addEventListener('click', function () { var t = remTabsFor(x).filter(function (q) { return q.key === s.tab; })[0]; window.open(termixUrl(data, t.view, x.id), '_blank', 'noopener'); });
+      full.addEventListener('click', function () { if (stage.requestFullscreen) stage.requestFullscreen().catch(function () { /* ignore */ }); });
+      rl.addEventListener('click', function () { var f = s.frames[s.tab]; if (f) { var u = f.src; f.src = 'about:blank'; setTimeout(function () { f.src = u; }, 60); } });
+      tx.addEventListener('click', function () { window.open(location.protocol + '//' + location.hostname + ':' + (data.termix_port || 8080) + '/', '_blank', 'noopener'); });
+      [rl, pop, full, tx].forEach(function (b) { tools.appendChild(b); });
+      head.appendChild(tools);
+      remTabsFor(x).forEach(function (t) {
+        var b = el('button', 'wb-rem-tab' + (t.key === s.tab ? ' on' : ''), t.label); b.type = 'button';
+        b.addEventListener('click', function () { s.tab = t.key; layout(); });
+        tabsEl.appendChild(b);
+      });
+      // frames: show the active session's tab (and the second session's, when split)
+      var show = [key(s.id, s.tab)];
+      ensureFrame(s, s.tab);
+      if (split && second !== null && sessions[second] && second !== active) { ensureFrame(sessions[second], sessions[second].tab); show.push(key(second, sessions[second].tab)); }
+      Object.keys(sessions).forEach(function (i) {
+        Object.keys(sessions[i].frames).forEach(function (k) { sessions[i].frames[k].style.display = show.indexOf(key(i, k)) >= 0 ? '' : 'none'; });
+      });
+      stage.className = 'wb-rem-stage' + (show.length > 1 ? ' split' : '');
+      hash(); renderList(); loadStats();
+      try { var fr = s.frames[s.tab]; if (fr) fr.focus(); } catch (e) { /* ignore */ }
     }
-    function load() { remoteHosts().then(fill).catch(function (e) { info.className = 'size-h6 color-negative wb-rem-msg'; info.textContent = 'Termix list unavailable (' + e.message + ')'; }); }
-    load();
-    node.__wbTimer = setInterval(function () { if (!document.body.contains(node)) { clearInterval(node.__wbTimer); } else if (document.activeElement !== sel) { remoteHosts().then(function (d) { data = d; }).catch(function () { /* keep the last list */ }); } }, 60000);
+
+    /* ---- live stats for the active host */
+    var statsTimer = null, statsFor = null;
+    function bar(label, pct, extra) {
+      var w = el('div', 'wb-rem-stat'); w.appendChild(el('span', 'size-h6 color-subdue', label));
+      var tr = el('span', 'wb-rem-track'), fi = el('span', 'wb-rem-fill' + (pct >= 90 ? ' hi' : pct >= 75 ? ' mid' : '')); fi.style.width = Math.max(0, Math.min(100, pct)) + '%'; tr.appendChild(fi); w.appendChild(tr);
+      w.appendChild(el('span', 'size-h6', Math.round(pct) + '%' + (extra ? ' ' + extra : ''))); return w;
+    }
+    function loadStats() {
+      var x = active !== null ? hostById[active] : null;
+      if (!x || !x.caps || !x.caps.metrics || x.up === false) { statsEl.textContent = ''; statsFor = null; return; }
+      statsFor = x.id;
+      api('GET', '/api/remote/metrics?id=' + x.id).then(function (m) {
+        if (statsFor !== x.id) return;
+        statsEl.textContent = '';
+        if (!m || m.cpu == null) return;
+        statsEl.appendChild(bar('CPU', m.cpu, m.cores ? '(' + m.cores + ' cores)' : ''));
+        statsEl.appendChild(bar('RAM', m.mem, m.mem_used != null ? '(' + m.mem_used + ' / ' + m.mem_total + ' GiB)' : ''));
+        statsEl.appendChild(bar('Disk', m.disk, m.disk_used ? '(' + m.disk_used + ' / ' + m.disk_total + ')' : ''));
+        var bits = [];
+        if (m.load) bits.push('load ' + m.load.join(' '));
+        if (m.uptime) bits.push('up ' + m.uptime);
+        if (m.temp != null) bits.push(m.temp + ' °C');
+        if (m.os) bits.push(m.os);
+        if (bits.length) statsEl.appendChild(el('span', 'size-h6 color-subdue wb-rem-stat-text', bits.join(' · ')));
+      }).catch(function () { if (statsFor === x.id) statsEl.textContent = ''; });
+    }
+    statsTimer = setInterval(function () {
+      if (!document.body.contains(node)) { clearInterval(statsTimer); return; }
+      if (!document.hidden) loadStats();
+    }, 10000);
+
+    /* ---- host list */
+    function matches(x) { var q = filter; return !q || (x.name + ' ' + x.address + ' ' + x.folder + ' ' + x.protocol).toLowerCase().indexOf(q) >= 0; }
+    function row(x) {
+      var a = el('button', 'wb-rem-row' + (x.id === active ? ' on' : '') + (x.up === false ? ' off' : '')); a.type = 'button';
+      a.title = x.up === false ? 'Offline in Termix: opening it will probably fail' : 'Open ' + x.name;
+      var m = el('div', 'wb-rem-main');
+      m.appendChild(el('div', 'color-highlight text-truncate', x.name));
+      m.appendChild(el('div', 'size-h6 color-subdue text-truncate', (x.kind === 'desktop' ? String(x.protocol).toUpperCase() + ' · ' : '') + x.address + (x.recent ? ' · ' + ago(x.recent) : '')));
+      a.appendChild(el('span', upClass(x), '●')); a.appendChild(m);
+      if (sessions[x.id]) a.appendChild(el('span', 'size-h6 color-primary', 'open'));
+      a.addEventListener('click', function () { open(x.id); });
+      return a;
+    }
+    function group(title, rows) {
+      if (!rows.length) return;
+      listEl.appendChild(el('div', 'wb-rem-gh size-h6 color-subdue', title));
+      rows.forEach(function (x) { listEl.appendChild(row(x)); });
+    }
+    function renderList() {
+      if (!data) return;
+      listEl.textContent = '';
+      var all = data.hosts.filter(matches), shown = {};
+      if (!filter) {
+        var rec = all.filter(function (x) { return x.recent; }).sort(function (a, b) { return a.recent < b.recent ? 1 : -1; }).slice(0, 4);
+        rec.forEach(function (x) { shown[x.id] = 1; });
+        group('Recent', rec);
+      }
+      var ssh = all.filter(function (x) { return x.kind === 'ssh' && !shown[x.id]; }), folders = {}, names = [];
+      ssh.forEach(function (x) { var f = x.folder || 'Other'; if (!folders[f]) { folders[f] = []; names.push(f); } folders[f].push(x); });
+      names.sort(function (a, b) { return a === 'Other' ? 1 : b === 'Other' ? -1 : a.toLowerCase() < b.toLowerCase() ? -1 : 1; });
+      names.forEach(function (f) { group(f, folders[f]); });
+      group('Remote desktops', all.filter(function (x) { return x.kind === 'desktop' && !shown[x.id]; }));
+      if (!all.length) listEl.appendChild(el('div', 'size-h6 color-subdue', filter ? 'No host matches.' : 'No hosts in Termix yet. Add one there and it appears here.'));
+      var off = data.hosts.filter(function (x) { return x.up === false; }).length;
+      sideMsg.className = 'size-h6 color-subdue wb-rem-msg';
+      sideMsg.textContent = data.hosts.length + ' hosts' + (off ? ', ' + off + ' offline' : '') + (data.stale ? ' · Termix not answering, showing the last list' : '');
+    }
+    search.addEventListener('input', function () { filter = search.value.trim().toLowerCase(); renderList(); });
+
+    function apply(d, first) {
+      data = d; hostById = {};
+      d.hosts.forEach(function (x) { hostById[x.id] = x; });
+      Object.keys(sessions).forEach(function (i) { if (!hostById[i]) dropSession(parseInt(i, 10)); });
+      renderList();
+      if (!started) {
+        started = true;
+        var q = new URLSearchParams(location.search), hid = parseInt(q.get('host'), 10);
+        if (hid && hostById[hid]) open(hid, q.get('tab') || '');
+        else layout();
+      }
+    }
+    function fail(e) {
+      sideMsg.className = 'size-h6 color-negative wb-rem-msg';
+      sideMsg.textContent = 'Termix list unavailable (' + e.message + '). Retrying...';
+      if (!data) { empty.textContent = ''; empty.appendChild(el('div', 'color-negative', 'Cannot reach Termix through glance-admin.')); empty.appendChild(el('div', 'size-h6 color-subdue', e.message)); }
+    }
+    function load(first) { remoteHosts(!first).then(function (d) { apply(d, first); }).catch(fail); }
+    load(true);
+    node.__wbTimer = setInterval(function () {
+      if (!document.body.contains(node)) clearInterval(node.__wbTimer);
+      else if (!document.hidden) load(false);
+    }, 20000);
   }
 
   /* ------------------------------------------------------------------ boot */
-  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks, vpn: initVpn, 'remote-desktops': initRemoteDesktops, 'remote-terminal': initRemoteTerminal };
+  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks, vpn: initVpn, 'remote-workspace': initRemoteWorkspace };
   var pending = false;
   function scan() {
     pending = false;

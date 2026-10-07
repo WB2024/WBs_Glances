@@ -252,8 +252,54 @@ remote_t = ('<ul class="list list-gap-10 size-h6">' + remote_row("Picard (MusicB
             + remote_row("Vaultwarden", "Password vault (reached over Tailscale only); stopped on purpose", "https://services.example.ts.net:8443", "cards.remote.ctr_vault") + "</ul>")
 
 
+
+rustybox = """        - type: custom-api
+          title: RustyBox
+          title-url: https://${HOST_SVC}:8443
+          cache: 30s
+          url: http://${HOST_SVC}:8088/api/summary
+          template: |
+            <div class="flex justify-between items-center margin-bottom-10">
+              <div>Xbox 360 <span class="color-subdue">library &amp; console manager</span></div>
+              <div class="size-h6 color-subdue">v{{ .JSON.String "version" }}</div>
+            </div>
+            <div class="wb-stats margin-bottom-10">
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "games" | formatNumber }}</div><div class="size-h6">GAMES</div></div>
+              <div><div class="size-h3 color-highlight">{{ printf "%.2f" (div (.JSON.Float "games_bytes") 1099511627776.0) }}<span class="size-h6"> TB</span></div><div class="size-h6">LIBRARY</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "libraries" }}</div><div class="size-h6">LIBRARIES</div></div>
+              <div><div class="size-h3 {{ if gt (.JSON.Int "duplicates") 0 }}color-primary{{ else }}color-positive{{ end }}">{{ .JSON.Int "duplicates" }}</div><div class="size-h6">DUPLICATES</div></div>
+              <div><div class="size-h3 color-highlight">{{ .JSON.Int "wanted.waiting" }}</div><div class="size-h6">WANTED</div></div>
+            </div>
+            <ul class="list list-gap-8 size-h6 margin-bottom-10">
+            {{ $running := 0 }}
+            {{ range .JSON.Array "jobs.running" }}
+              {{ $running = add $running 1 }}
+              <li>
+                <div class="flex justify-between gap-10"><span class="text-truncate">{{ .String "title" }}</span><span class="color-primary shrink-0">{{ printf "%.0f" (.Float "pct") }}%</span></div>
+                <div class="color-subdue text-truncate">{{ .String "step" }}</div>
+                <div class="wb-progress"><div style="width:{{ printf "%.0f" (.Float "pct") }}%"></div></div>
+              </li>
+            {{ end }}
+            {{ if eq $running 0 }}<li class="color-subdue">Idle &middot; {{ .JSON.Int "downloads.active" }} downloading &middot; {{ .JSON.Int "downloads.importing" }} importing{{ if gt (.JSON.Int "downloads.failed") 0 }} &middot; <span class="color-negative">{{ .JSON.Int "downloads.failed" }} failed</span>{{ end }}{{ if gt (.JSON.Int "jobs.failed_24h") 0 }} &middot; <span class="color-negative">{{ .JSON.Int "jobs.failed_24h" }} job(s) failed today</span>{{ end }}</li>{{ end }}
+            </ul>
+            {{ if .JSON.Array "latest" }}
+            <div class="size-h6 color-subdue margin-bottom-5">RECENTLY ADDED</div>
+            <div class="wb-strip">
+            {{ range .JSON.Array "latest" }}
+              <div class="wb-card">
+                <a href="https://${HOST_SVC}:8443/#games?q={{ .String "title_id" }}" target="_blank">
+                  {{ if .String "cover" }}<img src="http://${HOST_SVC}:8088/api/covers/{{ .String "cover" }}" alt="" loading="lazy">{{ else }}<div style="aspect-ratio:3/4;display:grid;place-items:center;background:var(--color-widget-background-highlight);border-radius:var(--border-radius)">&#127918;</div>{{ end }}
+                  <div class="wb-title">{{ .String "name" }}</div>
+                </a>
+              </div>
+            {{ end }}
+            </div>
+            {{ end }}
+"""
+
 page = "- name: Tools\n  slug: tools\n  width: wide\n  columns:\n    - size: full\n      widgets:\n"
-page += rustydisc + "\n"
+page += "        - type: split-column\n          max-columns: 2\n          widgets:\n"
+page += block(rustydisc, 12) + "\n" + block(rustybox, 12) + "\n"
 page += "        - type: split-column\n          max-columns: 2\n          widgets:\n"
 page += block(card("Paperless-ngx", "http://paperless.wbhomelab", paperless), 12) + "\n"
 page += block(card("BookStack", "http://bookstack.wbhomelab", bookstack), 12) + "\n"
