@@ -298,8 +298,8 @@ def _feed(label, url):
                 when = email.utils.parsedate_to_datetime(d.text).timestamp()
             except Exception:
                 when = _iso(d.text)
-        merchant = next((c.get("name") for c in e if c.tag.split("}")[-1] == "merchant"), "")
-        thumb = next((c.get("url") for c in e if c.tag.split("}")[-1] == "thumbnail"), "")
+        merchant = next((c.get("name") for c in e if c.tag.split("}")[-1] == "merchant"), "") or ""   # a merchant element without a name gives None
+        thumb = next((c.get("url") for c in e if c.tag.split("}")[-1] == "thumbnail"), "") or ""
         desc = next((x for x in (child("description"), child("content"), child("summary")) if x is not None), None)
         text = _strip(desc.text if desc is not None else "")
         if not title or not link:
@@ -311,7 +311,7 @@ def _feed(label, url):
 
 
 def _matches(item, terms):
-    hay = (item["title"] + " " + item["desc"] + " " + item["merchant"]).lower()
+    hay = " ".join(str(item.get(k) or "") for k in ("title", "desc", "merchant")).lower()
     hits = [t for t in terms if all(w in hay for w in t.split())]
     return hits
 

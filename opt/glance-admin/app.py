@@ -26,7 +26,7 @@ GLANCE_URL = os.environ.get("GLANCE_URL", "http://host.docker.internal:3002").rs
 PAGES = [p.split(":", 1) for p in os.environ.get(
     "PAGES",
     "home:Home,downloads:Downloads,audio:Audio,video:Video,infra:Infra,networking:Networking,"
-    "tools:Tools,dev:Dev,shopping:Shopping,cameras:Cameras,news:News Feeds,video-news:Video News Feed,bookmarks:Bookmarks").split(",")]
+    "tools:Tools,dev:Dev,work:Work,shopping:Shopping,cameras:Cameras,news:News Feeds,video-news:Video News Feed,bookmarks:Bookmarks").split(",")]
 WARM_SECONDS = int(os.environ.get("WARM_SECONDS", "15"))     # 0 turns the page warmer off
 REINDEX_SECONDS = int(os.environ.get("REINDEX_SECONDS", "300"))
 LIDARR_URL = os.environ.get("LIDARR_URL", "http://host.docker.internal:8686").rstrip("/")
@@ -542,6 +542,38 @@ def shop_summary():
     return d
 
 
+_workst = {"at": 0, "data": None, "err": ""}
+
+
+def work_build():
+    import work
+    _workst.update(data=work.build(), at=int(time.time()), err="")
+    _persist("work", {"at": _workst["at"], "data": _workst["data"]})
+
+
+def work_loop():
+    time.sleep(20)
+    while True:
+        try:
+            work_build()
+        except Exception as exc:
+            _workst["err"] = str(exc)[:200]
+        time.sleep(300)
+
+
+def work_kick():
+    if time.time() - _workst.get("kicked", 0) < 20:       # a page must not be able to hammer four upstream APIs
+        return
+    _workst["kicked"] = time.time()
+
+    def run():
+        try:
+            work_build()
+        except Exception as exc:
+            _workst["err"] = str(exc)[:200]
+    threading.Thread(target=run, daemon=True).start()
+
+
 _devst = {"at": 0, "data": None, "err": ""}
 
 
@@ -826,6 +858,28 @@ class H(BaseHTTPRequestHandler):
                     return self._send(202, vpn.command(self._body()))
             except (urllib.error.URLError, OSError):
                 return self._send(502, {"error": "VPN panel unreachable"})
+
+        if path.startswith("/api/work/") and method == "GET":
+            import work
+            if not work.configured():
+                return self._send(503, {"error": "Work tab not configured (WORK_* keys)"})
+            sub = path[len("/api/work/"):].strip("/")
+            try:
+                if sub == "summary":
+                    if _workst["data"] is None:
+                        return self._send(503, {"error": "not cached yet", "detail": _workst["err"]})
+                    return self._send(200, dict(_workst["data"], cached_at=_workst["at"]))
+                if sub == "search":
+                    return self._send(200, work.search((parse_qs(u.query).get("q") or [""])[0]))
+                if sub == "order":
+                    return self._send(200, work.order((parse_qs(u.query).get("id") or [""])[0]))
+                if sub == "refresh":
+                    work_kick()
+                    return self._send(202, {"ok": True})
+            except ValueError as e:
+                return self._send(400, {"error": str(e)})
+            except (urllib.error.URLError, OSError):
+                return self._send(502, {"error": "upstream unreachable"})
 
         if path == "/api/remote/hosts" and method == "GET":
             import remote
@@ -1268,7 +1322,7 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.makedirs(STATE_DIR, exist_ok=True)
-    for _name, _state in (("tailscale", _tailscale), ("npm", _npmst), ("infra", _infra), ("lidarr", _lcal), ("tools", _toolsst), ("releases", _relst), ("cameras", _camst), ("dev", _devst)):
+    for _name, _state in (("tailscale", _tailscale), ("npm", _npmst), ("infra", _infra), ("lidarr", _lcal), ("tools", _toolsst), ("releases", _relst), ("cameras", _camst), ("dev", _devst), ("work", _workst)):
         _c = _restore(_name)
         if _c and _c.get("data") is not None:
             _state.update(data=_c["data"], at=_c.get("at", 0))
@@ -1298,6 +1352,8 @@ if __name__ == "__main__":
     threading.Thread(target=_tools_loop, daemon=True).start()
     threading.Thread(target=_rel_loop, daemon=True).start()
     threading.Thread(target=_cam_loop, daemon=True).start()
+    if os.environ.get("WORK_BP_TOKEN") or os.environ.get("WORK_HUBSPOT_TOKEN"):
+        threading.Thread(target=work_loop, daemon=True).start()
     threading.Thread(target=_dev_loop, daemon=True).start()
     threading.Thread(target=shop_loop, daemon=True).start()
     if os.environ.get("TAILSCALE_OAUTH_SECRET"):

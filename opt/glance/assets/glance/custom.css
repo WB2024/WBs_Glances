@@ -518,3 +518,73 @@ i.wb-cat { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius
 .wb-rem-hint { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; padding: 2rem; text-align: center; }
 .wb-rem-msg { min-height: 1.4rem; margin-top: 0.4rem; }
 @media (max-width: 900px) { .wb-rem-ws { grid-template-columns: 1fr; } .wb-rem-side { max-height: 16rem; } .wb-rem-stage.split { grid-template-columns: 1fr; } .wb-rem-stage { height: 65vh; min-height: 24rem; } }
+
+/* Work tab */
+.wb-wk-kpigroup { margin-bottom: 1rem; }
+.wb-wk-kpigroup:last-child { margin-bottom: 0; }
+.wb-wk-gtitle { margin-bottom: 0.45rem; letter-spacing: 0.06em; }
+.wb-wk-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.7rem; }
+.wb-wk-kpi { padding: 0.6rem 0.9rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); min-width: 0; }
+.wb-wk-kpi.warn { border-color: var(--color-primary); }
+.wb-wk-kpi.bad { border-color: var(--color-negative); }
+.wb-wk-big { font-size: 1.6rem; line-height: 1.25; color: var(--color-text-highlight); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wb-wk-delta { margin-left: 0.4rem; font-size: var(--font-size-h6); }
+.wb-wk-up { color: var(--color-positive); }
+.wb-wk-down { color: var(--color-negative); }
+.wb-wk-att { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.25rem 0; min-width: 0; }
+.wb-wk-att a { color: inherit; text-decoration: none; }
+.wb-wk-att a:hover { text-decoration: underline; }
+.wb-wk-lv { flex: 0 0 auto; }
+.wb-wk-lv.bad { color: var(--color-negative); }
+.wb-wk-lv.warn { color: var(--color-primary); }
+.wb-wk-lv.info { color: var(--color-text-subdue); }
+.wb-wk-src { flex: 0 0 auto; min-width: 7rem; color: var(--color-text-subdue); }
+.wb-wk-chart { display: flex; align-items: flex-end; gap: 2px; height: 9rem; }
+.wb-wk-chart.small { height: 4.5rem; }
+.wb-wk-chart i { flex: 1; display: block; min-height: 0; background: var(--color-primary); border-radius: 2px 2px 0 0; opacity: 0.8; }
+.wb-wk-chart i:hover { opacity: 1; }
+.wb-wk-chart.alt i { background: var(--color-positive); }
+.wb-wk-chart.cool i { background: #6fa8dc; }
+.wb-wk-axis { display: flex; justify-content: space-between; margin-top: 0.25rem; }
+.wb-wk-hb { display: grid; grid-template-columns: minmax(6rem, 11rem) 1fr auto; gap: 0.6rem; align-items: center; padding: 0.18rem 0; }
+.wb-wk-hb.wide { grid-template-columns: minmax(10rem, 24rem) 1fr auto; }
+.wb-wk-hb .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-wk-hb .val { text-align: right; white-space: nowrap; }
+.wb-wk-track { display: block; height: 0.55rem; background: var(--color-widget-content-border); border-radius: 1rem; overflow: hidden; }
+.wb-wk-track i { display: block; height: 100%; background: var(--color-primary); border-radius: 1rem; }
+.wb-wk-track.alt i { background: var(--color-positive); }
+.wb-wk-track.cool i { background: #6fa8dc; }
+.wb-wk-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; padding: 0.28rem 0; min-width: 0; }
+.wb-wk-row + .wb-wk-row { border-top: 1px solid var(--color-widget-content-border); }
+.wb-wk-row .main { flex: 1; min-width: 0; }
+.wb-wk-row .side { flex: 0 0 auto; text-align: right; white-space: nowrap; }
+.wb-wk-row a { color: var(--color-text-highlight); text-decoration: none; }
+.wb-wk-row a:hover { text-decoration: underline; }
+.wb-wk-row button.wb-wk-link { background: none; border: 0; padding: 0; font: inherit; color: var(--color-text-highlight); cursor: pointer; text-align: left; }
+.wb-wk-row button.wb-wk-link:hover { text-decoration: underline; color: var(--color-primary); }
+.wb-wk-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.wb-wk-chip { padding: 0.3rem 0.8rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); }
+.wb-wk-chip b { color: var(--color-text-highlight); font-weight: 600; margin-right: 0.35rem; }
+.wb-wk-chip.warn { border-color: var(--color-primary); }
+.wb-wk-chip.bad { border-color: var(--color-negative); }
+.wb-wk-sub { margin: 1rem 0 0.4rem; letter-spacing: 0.06em; }
+.wb-wk-sub:first-child { margin-top: 0; }
+.wb-wk-gauge { height: 0.9rem; background: var(--color-widget-content-border); border-radius: 1rem; overflow: hidden; }
+.wb-wk-gauge i { display: block; height: 100%; background: var(--color-positive); }
+.wb-wk-gauge i.mid { background: var(--color-primary); }
+.wb-wk-gauge i.hi { background: var(--color-negative); }
+.wb-wk-sys { display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0; }
+/* search */
+.wb-wk-search { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem; }
+.wb-wk-input { width: 100%; padding: 0.5rem 0.8rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; outline: none; }
+.wb-wk-input:focus { border-color: var(--color-primary); }
+.wb-wk-res { display: flex; flex-direction: column; gap: 0.2rem; max-height: 26rem; overflow-y: auto; }
+.wb-wk-gh { margin-top: 0.5rem; letter-spacing: 0.06em; }
+.wb-wk-hit { display: flex; flex-direction: column; padding: 0.3rem 0.5rem; border-radius: var(--border-radius); text-decoration: none; color: inherit; background: none; border: 1px solid transparent; text-align: left; font: inherit; cursor: pointer; }
+.wb-wk-hit:hover { border-color: var(--color-primary); background: var(--color-widget-background-highlight); }
+.wb-wk-btn { padding: 0.3rem 0.8rem; background: var(--color-widget-background-highlight); border: 1px solid var(--color-widget-content-border); border-radius: var(--border-radius); color: var(--color-text-base); font: inherit; cursor: pointer; }
+.wb-wk-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.wb-wk-ord { padding: 0 1rem 1rem; overflow-y: auto; }
+.wb-wk-ord dl { display: grid; grid-template-columns: 8rem 1fr; gap: 0.3rem 1rem; margin: 0.8rem 0; }
+.wb-wk-ord dt { color: var(--color-text-subdue); }
+@media (max-width: 700px) { .wb-wk-hb { grid-template-columns: 7rem 1fr auto; } .wb-wk-src { min-width: 5rem; } .wb-wk-big { font-size: 1.3rem; } }

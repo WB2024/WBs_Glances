@@ -16,7 +16,7 @@ three small front-end files, and **this repo is both the showcase and the backup
 
 | | |
 |---|---|
-| **14 tabs** | Home, Downloads, Audio, Video, Infra, Networking, Remote, Tools, Dev, Shopping, Cameras, News Feeds, Video News Feed, Bookmarks |
+| **15 tabs** | Home, Downloads, Audio, Video, Infra, Networking, Remote, Tools, Dev, Work, Shopping, Cameras, News Feeds, Video News Feed, Bookmarks |
 | **Find** | one search box that finds anything on *any* tab, jumps to it and highlights the match (`/` focuses it) |
 | **Per-engine search bars** | SearXNG, Startpage, YouTube, Reddit, MusicBrainz, GitHub, and more: one click each |
 | **Notes and to-do** | saved on the server, so they follow you between devices |
@@ -84,6 +84,12 @@ appear only inside a PIN-locked widget** (and are never written to disk by glanc
 you get public data only.
 
 ![Dev](images/14-dev.jpg)
+
+### Work
+A business dashboard for the systems a small online business runs on, all through read-only API calls: **Brightpearl** (sales orders, revenue and orders per day, channels and destinations, top products, order status board, orders waiting on payment, purchase orders),
+**HubSpot** (open pipeline by stage and owner, won per month, deals closing soon or gone quiet, leads per day and source, support tickets, tasks, meetings), **WordPress / WooCommerce** (shop revenue, orders to ship, best sellers, stock, site response time, content) and
+**PythonAnywhere** (CPU quota, web apps, scheduled tasks with next run, error logs). *Business pulse* and *Needs attention* roll the four up; the search box looks up contacts, companies, deals and orders; clicking an order opens it. Each system is an independent section, so
+one outage greys out only its own cards. Customer addresses and marketplace buyers' names are never shown. Needs the `WORK_*` keys (below); without them the tab is empty.
 
 ### Shopping
 A shopping tab for tech, music, home, DIY and tools. **One search box across 20 UK shops** (eBay, Amazon, CeX, Scan, CCL, Screwfix, Toolstation, B&Q, Discogs, Vinted and more); a **shopping list**
@@ -196,6 +202,7 @@ What to put in `.env` (see `opt/glance/.env.example` for every name):
 | Tools | `BOOKSTACK_TOKEN`, `PAPERLESS_TOKEN`, `FORGEJO_TOKEN` |
 | Shopping | `DISCOGS_TOKEN` (Discogs > Settings > Developers), `EBAY_APP_ID` + `EBAY_CERT_ID` (free keys from developer.ebay.com, production keyset; without them the eBay section just explains what is missing), `CHANGEDETECTION_URL` / `CHANGEDETECTION_KEY` (the key is filled in by `install.sh`) |
 | Dev | `GITHUB_USER`, `GITHUB_TOKEN`: create a **fine-grained** personal access token (GitHub > Settings > Developer settings), repository access *All repositories*, permissions **read-only**: Metadata, Contents, Issues, Pull requests, Actions. Nothing here ever writes to GitHub. |
+| Work | `WORK_HUBSPOT_TOKEN` + `WORK_HS_PORTAL` (a HubSpot private-app token with read scopes), `WORK_BP_BASE` + `WORK_BP_APPREF` + `WORK_BP_TOKEN` (Brightpearl private app), `WORK_WP_URL` + `WORK_WP_USER` + `WORK_WP_KEY` (a WordPress **application password**), `WORK_PA_USER` + `WORK_PA_TOKEN` (PythonAnywhere API token). All read-only calls. |
 | Lock | `GLANCE_PIN` |
 | Agents | `AGENT_TOKEN_SVC`, `AGENT_TOKEN_JELLY`, `AGENT_TOKEN_DEVUAN` (any long random strings; the same value goes on the matching host) |
 

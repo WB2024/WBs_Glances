@@ -210,7 +210,7 @@ document:
   head: |
     <script src="/assets/glance/wb-restricted-config.js?v=1"></script>
     <script src="/assets/glance/wb-restricted.js?v=3" defer></script>
-    <script src="/assets/glance/wb-home.js?v=20" defer></script>
+    <script src="/assets/glance/wb-home.js?v=22" defer></script>
 
 pages:
   - $include: pages/home.yml
@@ -222,6 +222,7 @@ pages:
   - $include: pages/remote.yml
   - $include: pages/tools.yml
   - $include: pages/dev.yml
+  - $include: pages/work.yml
   - $include: pages/shopping.yml
   - $include: pages/cameras.yml
   - $include: data/news.yml

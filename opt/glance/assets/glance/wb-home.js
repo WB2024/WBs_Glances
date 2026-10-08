@@ -1345,8 +1345,101 @@
     }, 20000);
   }
 
+  /* ------------------------------------------------------------------ WORK (search across HubSpot / WooCommerce / Brightpearl, order viewer, refresh)
+     glance-admin /api/work/search?q= and /api/work/order?id= are read-only lookups; the API keys stay on the server.
+     Any element with data-wk-order="ID" (the order rows in the Work cards) opens the same order viewer. */
+  var wkModal = null;
+  function wkOpenOrder(id) {
+    if (!wkModal) {
+      var ov = h('div', 'wb-modal'); ov.hidden = true;
+      var box = h('div', 'wb-modal-box'), head = h('div', 'wb-modal-head'), title = h('div', 'wb-modal-title'), x = h('button', 'wb-modal-x', '✕');
+      x.type = 'button'; x.title = 'Close (Esc)';
+      head.appendChild(title); head.appendChild(x);
+      var body = h('div', 'wb-wk-ord');
+      box.appendChild(head); box.appendChild(body); ov.appendChild(box); document.body.appendChild(ov);
+      function shut() { ov.hidden = true; }
+      x.addEventListener('click', shut);
+      ov.addEventListener('click', function (e) { if (e.target === ov) shut(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !ov.hidden) shut(); });
+      wkModal = { ov: ov, title: title, body: body };
+    }
+    var m = wkModal; m.ov.hidden = false; m.title.textContent = 'Order ' + id; m.body.textContent = 'Loading...';
+    api('GET', '/api/work/order?id=' + encodeURIComponent(id)).then(function (o) {
+      m.title.textContent = 'Order ' + o.id + (o.ref ? ' · ' + o.ref : '');
+      m.body.textContent = '';
+      var dl = h('dl');
+      [['Status', o.status], ['Placed', o.placed], ['Channel', o.channel], ['Country', o.country], ['Customer', o.who],
+       ['Total', o.total + (o.orig ? '  (' + o.orig + ' at ' + o.fx + ')' : '')], ['Net', o.net], ['Payment', o.pay], ['Shipping', o.ship]].forEach(function (kv) {
+        if (!kv[1]) return; dl.appendChild(h('dt', '', kv[0])); dl.appendChild(h('dd', '', kv[1]));
+      });
+      m.body.appendChild(dl);
+      m.body.appendChild(h('div', 'size-h6 color-subdue wb-wk-sub', 'ITEMS'));
+      (o.rows || []).forEach(function (r) {
+        var row = h('div', 'wb-wk-row'), main = h('div', 'main');
+        main.appendChild(h('div', 'color-highlight', r.name)); if (r.sku) main.appendChild(h('div', 'size-h6 color-subdue', r.sku));
+        var side = h('div', 'side'); side.appendChild(h('div', '', '× ' + r.qty)); side.appendChild(h('div', 'size-h6 color-subdue', r.fmt));
+        row.appendChild(main); row.appendChild(side); m.body.appendChild(row);
+      });
+    }).catch(function (e) { m.body.textContent = 'Could not load this order (' + e.message + ').'; });
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-wk-order]') : null;
+    if (t) { e.preventDefault(); wkOpenOrder(t.getAttribute('data-wk-order')); }
+  });
+
+  function initWorkSearch(node) {
+    var wrap = h('div', 'wb-wk-search'), inp = h('input', 'wb-wk-input'); inp.type = 'search'; inp.placeholder = 'Search contacts, deals, orders...'; inp.setAttribute('aria-label', 'Search work systems');
+    var res = h('div', 'wb-wk-res'), hint = h('div', 'size-h6 color-subdue', 'HubSpot contacts, companies and deals; WooCommerce orders; Brightpearl order number or customer reference.');
+    wrap.appendChild(inp); wrap.appendChild(res); wrap.appendChild(hint); node.appendChild(wrap);
+    var seq = 0;
+    function render(d) {
+      res.textContent = '';
+      var any = false;
+      d.groups.forEach(function (g) {
+        if (!g.items.length && !g.err) return;
+        res.appendChild(h('div', 'size-h6 color-subdue wb-wk-gh', g.name.toUpperCase() + (g.err ? ' · unavailable' : '')));
+        g.items.forEach(function (it) {
+          any = true;
+          var a;
+          if (it.kind === 'bp') { a = h('button', 'wb-wk-hit'); a.type = 'button'; a.setAttribute('data-wk-order', it.id); }
+          else { a = h('a', 'wb-wk-hit'); a.href = it.url; a.target = '_blank'; a.rel = 'noopener'; }
+          a.appendChild(h('span', 'color-highlight text-truncate', it.title)); if (it.sub) a.appendChild(h('span', 'size-h6 color-subdue text-truncate', it.sub));
+          res.appendChild(a);
+        });
+      });
+      if (!any) res.appendChild(h('div', 'size-h6 color-subdue', 'Nothing found for "' + d.q + '".'));
+    }
+    var run = debounce(function () {
+      var q = inp.value.trim(), n = ++seq;
+      if (q.length < 2) { res.textContent = ''; return; }
+      res.textContent = ''; res.appendChild(h('div', 'size-h6 color-subdue', 'Searching...'));
+      api('GET', '/api/work/search?q=' + encodeURIComponent(q)).then(function (d) { if (n === seq) render(d); })
+        .catch(function (e) { if (n === seq) { res.textContent = ''; res.appendChild(h('div', 'size-h6 color-negative', 'Search failed (' + e.message + ').')); } });
+    }, 350);
+    inp.addEventListener('input', run);
+  }
+
+  function initWorkRefresh(node) {
+    var line = h('span', 'size-h6 color-subdue'), b = h('button', 'wb-wk-btn', 'Refresh now'); b.type = 'button';
+    node.appendChild(line); node.appendChild(document.createTextNode(' ')); node.appendChild(b);
+    function age(ts) { var m = Math.max(0, Math.round((Date.now() / 1000 - ts) / 60)); return m < 1 ? 'just now' : m + ' min ago'; }
+    var last = 0;
+    function show() { return api('GET', '/api/work/summary').then(function (d) { last = d.cached_at; line.textContent = 'Updated ' + age(d.cached_at) + ' (every 5 min)'; return d; }).catch(function () { line.textContent = 'Not loaded yet'; }); }
+    show();
+    b.addEventListener('click', function () {
+      b.disabled = true; line.textContent = 'Refreshing...';
+      var before = last;
+      api('GET', '/api/work/refresh').catch(function () { /* ignore */ });
+      var tries = 0, t = setInterval(function () {
+        tries++;
+        api('GET', '/api/work/summary').then(function (d) { if (d.cached_at !== before || tries > 20) { clearInterval(t); location.reload(); } }).catch(function () { /* keep trying */ });
+        if (tries > 20) { clearInterval(t); b.disabled = false; }
+      }, 3000);
+    });
+  }
+
   /* ------------------------------------------------------------------ boot */
-  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks, vpn: initVpn, 'remote-workspace': initRemoteWorkspace };
+  var INIT = { find: initFind, search: initSearch, notes: initNotes, todo: initTodo, channels: initChannels, news: initNews, 'cam-events': initCamEvents, 'shop-list': initShopList, 'shop-wish': initShopWish, 'shop-terms': initShopTerms, 'shop-spend': initShopSpend, 'shop-ebay': initShopEbay, 'shop-watch': initShopWatch, bookmarks: initBookmarks, vpn: initVpn, 'remote-workspace': initRemoteWorkspace, 'work-search': initWorkSearch, 'work-refresh': initWorkRefresh };
   var pending = false;
   function scan() {
     pending = false;

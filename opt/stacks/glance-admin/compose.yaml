@@ -54,6 +54,17 @@ services:
       - VPN_KEY=${VPN_KEY}
       - TERMIX_URL=http://host.docker.internal:8080   # Termix (stacks/termix): host list for the Remote tab
       - TERMIX_API_KEY=${TERMIX_API_KEY}
+      # Work tab: HubSpot, Brightpearl, WordPress/WooCommerce, PythonAnywhere. Read-only calls; keys never reach the browser
+      - WORK_HUBSPOT_TOKEN=${WORK_HUBSPOT_TOKEN:-}
+      - WORK_HS_PORTAL=${WORK_HS_PORTAL:-}
+      - WORK_BP_BASE=${WORK_BP_BASE:-}
+      - WORK_BP_APPREF=${WORK_BP_APPREF:-}
+      - WORK_BP_TOKEN=${WORK_BP_TOKEN:-}
+      - WORK_WP_URL=${WORK_WP_URL:-}
+      - WORK_WP_USER=${WORK_WP_USER:-}
+      - WORK_WP_KEY=${WORK_WP_KEY:-}
+      - WORK_PA_USER=${WORK_PA_USER:-}
+      - WORK_PA_TOKEN=${WORK_PA_TOKEN:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
